@@ -119,6 +119,9 @@ export const translations = {
     customSourcesInvalidUrl: 'URL invalide — vérifiez le format (ex : https://site.fr).',
     customSourcesDuplicateUrl: 'Cette URL est déjà dans votre liste.',
     customSourcesCountSuffix: 'source(s)',
+    // Data loading
+    loadingListings: 'Chargement des annonces…',
+    loadingListingsError: 'Impossible de charger les annonces.',
   },
   en: {
     tagline: 'European search engine',
@@ -225,6 +228,8 @@ export const translations = {
     customSourcesInvalidUrl: 'Invalid URL — check the format (e.g. https://site.com).',
     customSourcesDuplicateUrl: 'This URL is already in your list.',
     customSourcesCountSuffix: 'source(s)',
+    loadingListings: 'Loading listings…',
+    loadingListingsError: 'Unable to load listings.',
   },
 } as const;
 

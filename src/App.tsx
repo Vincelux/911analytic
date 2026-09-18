@@ -1,12 +1,12 @@
-import { useState, useMemo } from 'react';
-import { Globe, Link as LinkIcon } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { Globe, Link as LinkIcon, Loader2, AlertTriangle } from 'lucide-react';
 import {
   type FilterState,
   defaultFilters,
-  listings,
   filterListings,
   type CarListing,
 } from './data';
+import { fetchListings } from './listingsRepository';
 import { type Lang, getT } from './i18n';
 import { useCustomSources } from './customSources';
 import FilterPanel from './FilterPanel';
@@ -26,13 +26,33 @@ export default function App() {
   const [view, setView] = useState<View>('listing');
   const [sourcesOpen, setSourcesOpen] = useState(false);
   const { sources: customSources, addSource, removeSource } = useCustomSources();
+  const [listings, setListings] = useState<CarListing[]>([]);
+  const [listingsLoading, setListingsLoading] = useState(true);
+  const [listingsError, setListingsError] = useState<string | null>(null);
   const t = getT(lang);
 
-  const filteredListings = useMemo(() => filterListings(listings, filters), [filters]);
+  useEffect(() => {
+    let cancelled = false;
+    fetchListings()
+      .then((data) => {
+        if (!cancelled) setListings(data);
+      })
+      .catch((err) => {
+        if (!cancelled) setListingsError(err instanceof Error ? err.message : String(err));
+      })
+      .finally(() => {
+        if (!cancelled) setListingsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const filteredListings = useMemo(() => filterListings(listings, filters), [listings, filters]);
 
   const selectedCars = useMemo(
     () => listings.filter((l) => selectedIds.has(l.id)),
-    [selectedIds]
+    [listings, selectedIds]
   );
 
   const toggleSelect = (id: string) => {
@@ -152,7 +172,18 @@ export default function App() {
         </div>
 
         {/* Listing grid */}
-        {filteredListings.length > 0 ? (
+        {listingsLoading ? (
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-white/10 bg-white/[0.02] py-20">
+            <Loader2 className="h-6 w-6 animate-spin text-amber-300/70" />
+            <p className="mt-3 text-sm font-light text-white/40">{t('loadingListings')}</p>
+          </div>
+        ) : listingsError ? (
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-red-400/20 bg-red-400/5 py-20">
+            <AlertTriangle className="h-6 w-6 text-red-300" />
+            <p className="mt-3 text-sm font-light text-red-200/80">{t('loadingListingsError')}</p>
+            <p className="mt-1 max-w-md text-center text-xs font-light text-white/30">{listingsError}</p>
+          </div>
+        ) : filteredListings.length > 0 ? (
           <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
             {filteredListings.map((car) => (
               <CarCard
