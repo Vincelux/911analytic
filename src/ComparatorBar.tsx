@@ -1,4 +1,4 @@
-import { X, Check, ChevronRight, GitCompare } from 'lucide-react';
+import { X, ChevronRight, GitCompare } from 'lucide-react';
 import { type Lang, getT } from './i18n';
 
 interface ComparatorBarProps {
