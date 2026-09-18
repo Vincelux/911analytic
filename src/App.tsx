@@ -1,18 +1,20 @@
-import { useState, useMemo } from 'react';
-import { Globe } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { Globe, Link as LinkIcon, Loader2, AlertTriangle } from 'lucide-react';
 import {
   type FilterState,
   defaultFilters,
-  listings,
   filterListings,
   type CarListing,
 } from './data';
+import { fetchListings } from './listingsRepository';
 import { type Lang, getT } from './i18n';
+import { useCustomSources } from './customSources';
 import FilterPanel from './FilterPanel';
 import CarCard from './CarCard';
 import CarDetail from './CarDetail';
 import Comparator from './Comparator';
 import ComparatorBar from './ComparatorBar';
+import CustomSourcesDrawer from './CustomSourcesDrawer';
 
 type View = 'listing' | 'comparator';
 
@@ -22,13 +24,35 @@ export default function App() {
   const [selectedCar, setSelectedCar] = useState<CarListing | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [view, setView] = useState<View>('listing');
+  const [sourcesOpen, setSourcesOpen] = useState(false);
+  const { sources: customSources, addSource, removeSource } = useCustomSources();
+  const [listings, setListings] = useState<CarListing[]>([]);
+  const [listingsLoading, setListingsLoading] = useState(true);
+  const [listingsError, setListingsError] = useState<string | null>(null);
   const t = getT(lang);
 
-  const filteredListings = useMemo(() => filterListings(listings, filters), [filters]);
+  useEffect(() => {
+    let cancelled = false;
+    fetchListings()
+      .then((data) => {
+        if (!cancelled) setListings(data);
+      })
+      .catch((err) => {
+        if (!cancelled) setListingsError(err instanceof Error ? err.message : String(err));
+      })
+      .finally(() => {
+        if (!cancelled) setListingsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const filteredListings = useMemo(() => filterListings(listings, filters), [listings, filters]);
 
   const selectedCars = useMemo(
     () => listings.filter((l) => selectedIds.has(l.id)),
-    [selectedIds]
+    [listings, selectedIds]
   );
 
   const toggleSelect = (id: string) => {
@@ -81,30 +105,46 @@ export default function App() {
             </div>
           </div>
 
-          {/* Language switcher */}
-          <div className="flex items-center gap-2">
-            <Globe className="h-4 w-4 text-white/30" />
+          <div className="flex items-center gap-3">
+            {/* Custom sources */}
             <button
-              onClick={() => setLang('fr')}
-              className={`rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
-                lang === 'fr'
-                  ? 'bg-amber-400/15 text-amber-300'
-                  : 'text-white/40 hover:text-white/70'
-              }`}
+              onClick={() => setSourcesOpen(true)}
+              className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs font-light text-white/60 transition-all hover:border-amber-400/30 hover:text-white"
             >
-              FR
+              <LinkIcon className="h-3.5 w-3.5 text-amber-300/70" />
+              <span className="hidden sm:inline">{t('customSources')}</span>
+              {customSources.length > 0 && (
+                <span className="rounded-full bg-amber-400/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-300">
+                  {customSources.length}
+                </span>
+              )}
             </button>
-            <span className="text-white/20">|</span>
-            <button
-              onClick={() => setLang('en')}
-              className={`rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
-                lang === 'en'
-                  ? 'bg-amber-400/15 text-amber-300'
-                  : 'text-white/40 hover:text-white/70'
-              }`}
-            >
-              EN
-            </button>
+
+            {/* Language switcher */}
+            <div className="flex items-center gap-2">
+              <Globe className="h-4 w-4 text-white/30" />
+              <button
+                onClick={() => setLang('fr')}
+                className={`rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
+                  lang === 'fr'
+                    ? 'bg-amber-400/15 text-amber-300'
+                    : 'text-white/40 hover:text-white/70'
+                }`}
+              >
+                FR
+              </button>
+              <span className="text-white/20">|</span>
+              <button
+                onClick={() => setLang('en')}
+                className={`rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
+                  lang === 'en'
+                    ? 'bg-amber-400/15 text-amber-300'
+                    : 'text-white/40 hover:text-white/70'
+                }`}
+              >
+                EN
+              </button>
+            </div>
           </div>
         </div>
 
@@ -132,7 +172,18 @@ export default function App() {
         </div>
 
         {/* Listing grid */}
-        {filteredListings.length > 0 ? (
+        {listingsLoading ? (
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-white/10 bg-white/[0.02] py-20">
+            <Loader2 className="h-6 w-6 animate-spin text-amber-300/70" />
+            <p className="mt-3 text-sm font-light text-white/40">{t('loadingListings')}</p>
+          </div>
+        ) : listingsError ? (
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-red-400/20 bg-red-400/5 py-20">
+            <AlertTriangle className="h-6 w-6 text-red-300" />
+            <p className="mt-3 text-sm font-light text-red-200/80">{t('loadingListingsError')}</p>
+            <p className="mt-1 max-w-md text-center text-xs font-light text-white/30">{listingsError}</p>
+          </div>
+        ) : filteredListings.length > 0 ? (
           <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
             {filteredListings.map((car) => (
               <CarCard
@@ -161,6 +212,17 @@ export default function App() {
       {/* Detail panel */}
       {selectedCar && (
         <CarDetail car={selectedCar} lang={lang} onClose={() => setSelectedCar(null)} />
+      )}
+
+      {/* Custom sources panel */}
+      {sourcesOpen && (
+        <CustomSourcesDrawer
+          lang={lang}
+          sources={customSources}
+          onAdd={addSource}
+          onRemove={removeSource}
+          onClose={() => setSourcesOpen(false)}
+        />
       )}
 
       {/* Floating comparator bar */}
