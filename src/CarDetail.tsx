@@ -298,34 +298,36 @@ export default function CarDetail({ car, lang, onClose }: CarDetailProps) {
             </div>
           </div>
 
-          <div>
-            <h3 className="mb-3 text-xs uppercase tracking-[0.15em] text-white/30">{t('valueAnalysis')}</h3>
-            <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.03] to-transparent p-5">
-              <div className="mb-4 flex items-center gap-2"><Sparkles className="h-4 w-4 text-amber-300" /><h4 className="text-sm font-light tracking-[0.1em] text-white/80">{t('priceHistory')}</h4></div>
-              <div className="h-52 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={car.priceHistory} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
-                    <defs><linearGradient id="detailPriceGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#fbbf24" stopOpacity={0.3} /><stop offset="100%" stopColor="#fbbf24" stopOpacity={0} /></linearGradient></defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
-                    <XAxis dataKey="year" tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 11, fontWeight: 300 }} axisLine={{ stroke: 'rgba(255,255,255,0.05)' }} tickLine={false} interval={1} />
-                    <YAxis tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 11, fontWeight: 300 }} axisLine={false} tickLine={false} tickFormatter={(v: number) => `${v / 1000}k`} width={35} />
-                    <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#fbbf24', strokeWidth: 1, strokeDasharray: '4 4' }} />
-                    <Area type="monotone" dataKey="price" stroke="#fbbf24" strokeWidth={2} fill="url(#detailPriceGrad)" dot={{ fill: '#fbbf24', r: 2, strokeWidth: 0 }} activeDot={{ r: 5, fill: '#fbbf24', stroke: '#0a0a0a', strokeWidth: 2 }} />
-                  </AreaChart>
-                </ResponsiveContainer>
+          {car.valueAnalysis && (
+            <div>
+              <h3 className="mb-3 text-xs uppercase tracking-[0.15em] text-white/30">{t('valueAnalysis')}</h3>
+              <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.03] to-transparent p-5">
+                <div className="mb-4 flex items-center gap-2"><Sparkles className="h-4 w-4 text-amber-300" /><h4 className="text-sm font-light tracking-[0.1em] text-white/80">{t('priceHistory')}</h4></div>
+                <div className="h-52 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={car.priceHistory} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
+                      <defs><linearGradient id="detailPriceGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#fbbf24" stopOpacity={0.3} /><stop offset="100%" stopColor="#fbbf24" stopOpacity={0} /></linearGradient></defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
+                      <XAxis dataKey="year" tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 11, fontWeight: 300 }} axisLine={{ stroke: 'rgba(255,255,255,0.05)' }} tickLine={false} interval={1} />
+                      <YAxis tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 11, fontWeight: 300 }} axisLine={false} tickLine={false} tickFormatter={(v: number) => `${v / 1000}k`} width={35} />
+                      <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#fbbf24', strokeWidth: 1, strokeDasharray: '4 4' }} />
+                      <Area type="monotone" dataKey="price" stroke="#fbbf24" strokeWidth={2} fill="url(#detailPriceGrad)" dot={{ fill: '#fbbf24', r: 2, strokeWidth: 0 }} activeDot={{ r: 5, fill: '#fbbf24', stroke: '#0a0a0a', strokeWidth: 2 }} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
-            </div>
 
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <div className="rounded-xl border border-white/10 bg-white/[0.02] p-5">
-                <div className="mb-3 flex items-center justify-between"><span className="text-xs uppercase tracking-[0.15em] text-white/30">{t('retentionScore')}</span><span className="rounded-md bg-white/5 px-2 py-0.5 text-[10px] font-light text-white/50">{t('rarity')}: {car.valueAnalysis.rarityLabel}</span></div>
-                <div className="flex items-end gap-4"><div className="flex items-baseline gap-1"><span className="text-4xl font-light tracking-tight text-white">{car.valueAnalysis.retentionScore}</span><span className="text-lg font-light text-white/30">/10</span></div><div className="flex-1 pb-2"><div className="h-2 overflow-hidden rounded-full bg-white/10"><div className={`h-full rounded-full bg-gradient-to-r ${car.valueAnalysis.retentionScore >= 8 ? 'from-emerald-400 to-emerald-500' : car.valueAnalysis.retentionScore >= 6 ? 'from-amber-400 to-amber-500' : 'from-red-400 to-red-500'} transition-all duration-700`} style={{ width: `${(car.valueAnalysis.retentionScore / 10) * 100}%` }} /></div></div></div>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <div className="rounded-xl border border-white/10 bg-white/[0.02] p-5">
+                  <div className="mb-3 flex items-center justify-between"><span className="text-xs uppercase tracking-[0.15em] text-white/30">{t('retentionScore')}</span><span className="rounded-md bg-white/5 px-2 py-0.5 text-[10px] font-light text-white/50">{t('rarity')}: {car.valueAnalysis.rarityLabel}</span></div>
+                  <div className="flex items-end gap-4"><div className="flex items-baseline gap-1"><span className="text-4xl font-light tracking-tight text-white">{car.valueAnalysis.retentionScore}</span><span className="text-lg font-light text-white/30">/10</span></div><div className="flex-1 pb-2"><div className="h-2 overflow-hidden rounded-full bg-white/10"><div className={`h-full rounded-full bg-gradient-to-r ${car.valueAnalysis.retentionScore >= 8 ? 'from-emerald-400 to-emerald-500' : car.valueAnalysis.retentionScore >= 6 ? 'from-amber-400 to-amber-500' : 'from-red-400 to-red-500'} transition-all duration-700`} style={{ width: `${(car.valueAnalysis.retentionScore / 10) * 100}%` }} /></div></div></div>
+                </div>
+                <div className="flex flex-col justify-center rounded-xl border border-white/10 bg-white/[0.02] p-5"><span className="mb-3 text-xs uppercase tracking-[0.15em] text-white/30">{t('futureTrend')}</span><TrendBadge trend={car.valueAnalysis.trend} label={car.valueAnalysis.trendLabel} /><p className="mt-3 text-sm font-light leading-relaxed text-white/40">{car.valueAnalysis.trend === 'up' ? t('trendUpDesc') : car.valueAnalysis.trend === 'stable' ? t('trendStableDesc') : t('trendDownDesc')}</p></div>
               </div>
-              <div className="flex flex-col justify-center rounded-xl border border-white/10 bg-white/[0.02] p-5"><span className="mb-3 text-xs uppercase tracking-[0.15em] text-white/30">{t('futureTrend')}</span><TrendBadge trend={car.valueAnalysis.trend} label={car.valueAnalysis.trendLabel} /><p className="mt-3 text-sm font-light leading-relaxed text-white/40">{car.valueAnalysis.trend === 'up' ? t('trendUpDesc') : car.valueAnalysis.trend === 'stable' ? t('trendStableDesc') : t('trendDownDesc')}</p></div>
-            </div>
 
-            <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.02] p-5"><p className="mb-3 text-xs uppercase tracking-[0.15em] text-white/30">{t('speculationFactors')}</p><ul className="space-y-2">{car.valueAnalysis.factors.map((factor, i) => <li key={i} className="flex items-start gap-2.5"><div className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" /><span className="text-sm font-light leading-relaxed text-white/55">{factor}</span></li>)}</ul></div>
-          </div>
+              <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.02] p-5"><p className="mb-3 text-xs uppercase tracking-[0.15em] text-white/30">{t('speculationFactors')}</p><ul className="space-y-2">{car.valueAnalysis.factors.map((factor, i) => <li key={i} className="flex items-start gap-2.5"><div className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" /><span className="text-sm font-light leading-relaxed text-white/55">{factor}</span></li>)}</ul></div>
+            </div>
+          )}
 
           <div>
             <h3 className="mb-3 text-xs uppercase tracking-[0.15em] text-white/30">{t('expertOpinion')}</h3>
