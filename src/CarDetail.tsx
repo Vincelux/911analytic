@@ -32,6 +32,8 @@ import {
   ExternalLink,
   Store,
   User,
+  Car as CarIcon,
+  StickyNote,
 } from 'lucide-react';
 import type { CarListing, PricePoint, ValueAnalysisData, VigilancePoint } from './data';
 import { type Lang, getT } from './i18n';
@@ -159,12 +161,18 @@ export default function CarDetail({ car, lang, onClose }: CarDetailProps) {
         </button>
 
         <div className="relative -mt-13 h-64 overflow-hidden">
-          <img src={car.image} alt={car.model} className="h-full w-full object-cover" />
+          {car.image ? (
+            <img src={car.image} alt={car.model} className="h-full w-full object-cover" />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center bg-white/[0.03]">
+              <CarIcon className="h-14 w-14 text-white/15" />
+            </div>
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-[#0d0d0d] via-[#0d0d0d]/40 to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 p-6">
             <div className="mb-2 flex items-center gap-2">
               <span className="rounded-md bg-amber-400/15 px-2.5 py-1 text-xs font-medium text-amber-300">
-                {car.generation} · {car.phase}
+                {[car.generation, car.phase].filter(Boolean).join(' · ')}
               </span>
               <span className="flex items-center gap-1.5 rounded-md border border-white/10 bg-black/40 px-2 py-1 text-xs text-white/70 backdrop-blur-md">
                 {flagEmoji[car.countryFlag]} {car.country}
@@ -181,7 +189,7 @@ export default function CarDetail({ car, lang, onClose }: CarDetailProps) {
               { icon: Calendar, value: car.year.toString(), label: t('year') },
               { icon: Gauge, value: formatMileage(car.mileage, lang), label: t('km') },
               { icon: Zap, value: `${car.power} ch`, label: t('power') },
-              { icon: Star, value: `${car.sellerRating.toFixed(1)}/5`, label: t('rating') },
+              { icon: Star, value: car.sellerRating != null ? `${car.sellerRating.toFixed(1)}/5` : '—', label: t('rating') },
             ].map((s, i) => (
               <div key={i} className="rounded-xl border border-white/5 bg-white/[0.02] p-3 text-center">
                 <s.icon className="mx-auto mb-1.5 h-4 w-4 text-amber-300/60" />
@@ -231,26 +239,44 @@ export default function CarDetail({ car, lang, onClose }: CarDetailProps) {
                   {car.sellerType === 'Professionnel' ? t('pro') : t('private')}
                 </span>
               </div>
-              <div className="flex items-center gap-1">
-                <Star className="h-3.5 w-3.5 fill-amber-300 text-amber-300" />
-                <span className="text-sm font-light text-white/70">{car.sellerRating.toFixed(1)}/5</span>
-              </div>
+              {car.sellerRating != null && (
+                <div className="flex items-center gap-1">
+                  <Star className="h-3.5 w-3.5 fill-amber-300 text-amber-300" />
+                  <span className="text-sm font-light text-white/70">{car.sellerRating.toFixed(1)}/5</span>
+                </div>
+              )}
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex items-center gap-2.5 rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2.5">
-                <Phone className="h-4 w-4 shrink-0 text-white/30" />
-                <span className="truncate text-sm font-light text-white/70">{car.sellerPhone}</span>
+            {(car.sellerPhone || car.sellerEmail) && (
+              <div className="grid grid-cols-2 gap-3">
+                {car.sellerPhone && (
+                  <div className="flex items-center gap-2.5 rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2.5">
+                    <Phone className="h-4 w-4 shrink-0 text-white/30" />
+                    <span className="truncate text-sm font-light text-white/70">{car.sellerPhone}</span>
+                  </div>
+                )}
+                {car.sellerEmail && (
+                  <div className="flex items-center gap-2.5 rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2.5">
+                    <Mail className="h-4 w-4 shrink-0 text-white/30" />
+                    <span className="truncate text-sm font-light text-white/70">{car.sellerEmail}</span>
+                  </div>
+                )}
               </div>
-              <div className="flex items-center gap-2.5 rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2.5">
-                <Mail className="h-4 w-4 shrink-0 text-white/30" />
-                <span className="truncate text-sm font-light text-white/70">{car.sellerEmail}</span>
-              </div>
-            </div>
+            )}
             <a href={car.listingUrl} target="_blank" rel="noopener noreferrer" className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-amber-400/30 bg-amber-400/10 px-4 py-2.5 text-sm font-light text-amber-200 transition-all hover:bg-amber-400/20">
               <ExternalLink className="h-4 w-4" />
               {t('seeListingOn')} {car.listingSource}
             </a>
           </div>
+
+          {car.notes && (
+            <div className="rounded-xl border border-amber-400/10 bg-amber-400/[0.03] p-5">
+              <div className="mb-2 flex items-center gap-2">
+                <StickyNote className="h-4 w-4 text-amber-300/70" />
+                <h3 className="text-xs uppercase tracking-[0.15em] text-white/40">{t('personalNotes')}</h3>
+              </div>
+              <p className="text-sm font-light leading-relaxed text-white/60">{car.notes}</p>
+            </div>
+          )}
 
           <div>
             <h3 className="mb-3 text-xs uppercase tracking-[0.15em] text-white/30">{t('detectedOptions')}</h3>

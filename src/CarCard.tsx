@@ -1,4 +1,4 @@
-import { Star, ShieldCheck, Gauge, Calendar, MapPin, Store, User } from 'lucide-react';
+import { Star, ShieldCheck, Gauge, Calendar, MapPin, Store, User, Car as CarIcon } from 'lucide-react';
 import type { CarListing } from './data';
 import { type Lang, getT } from './i18n';
 
@@ -26,9 +26,9 @@ interface CarCardProps {
 export default function CarCard({ car, isSelected, onToggleSelect, onClick, lang }: CarCardProps) {
   const t = getT(lang);
   const conformityColor =
-    car.conformity >= 85
+    car.conformity != null && car.conformity >= 85
       ? 'text-emerald-300 bg-emerald-400/10 border-emerald-400/20'
-      : car.conformity >= 65
+      : car.conformity != null && car.conformity >= 65
       ? 'text-amber-300 bg-amber-400/10 border-amber-400/20'
       : 'text-red-300 bg-red-400/10 border-red-400/20';
 
@@ -39,20 +39,28 @@ export default function CarCard({ car, isSelected, onToggleSelect, onClick, lang
     >
       {/* Image */}
       <div className="relative h-48 overflow-hidden">
-        <img
-          src={car.image}
-          alt={car.model}
-          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-        />
+        {car.image ? (
+          <img
+            src={car.image}
+            alt={car.model}
+            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-white/[0.03]">
+            <CarIcon className="h-10 w-10 text-white/15" />
+          </div>
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-transparent to-transparent" />
 
         {/* Conformity badge */}
-        <div className="absolute right-3 top-3">
-          <div className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 backdrop-blur-md ${conformityColor}`}>
-            <ShieldCheck className="h-3.5 w-3.5" />
-            <span className="text-[11px] font-medium">{car.conformity}%</span>
+        {car.conformity != null && (
+          <div className="absolute right-3 top-3">
+            <div className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 backdrop-blur-md ${conformityColor}`}>
+              <ShieldCheck className="h-3.5 w-3.5" />
+              <span className="text-[11px] font-medium">{car.conformity}%</span>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Country flag */}
         <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-lg border border-white/10 bg-black/40 px-2 py-1 backdrop-blur-md">
@@ -91,7 +99,7 @@ export default function CarCard({ car, isSelected, onToggleSelect, onClick, lang
         <div className="mb-3">
           <h3 className="text-lg font-light tracking-wide text-white">{car.model}</h3>
           <p className="text-xs font-light text-white/40">
-            {car.generation} · {car.phase} · {car.year}
+            {[car.generation, car.phase, car.year].filter(Boolean).join(' · ')}
           </p>
         </div>
 
@@ -127,10 +135,12 @@ export default function CarCard({ car, isSelected, onToggleSelect, onClick, lang
               {car.sellerType === 'Professionnel' ? t('pro') : t('private')}
             </span>
           </div>
-          <div className="flex items-center gap-1">
-            <Star className="h-3 w-3 fill-amber-300 text-amber-300" />
-            <span className="text-xs font-light text-white/60">{car.sellerRating.toFixed(1)}</span>
-          </div>
+          {car.sellerRating != null && (
+            <div className="flex items-center gap-1">
+              <Star className="h-3 w-3 fill-amber-300 text-amber-300" />
+              <span className="text-xs font-light text-white/60">{car.sellerRating.toFixed(1)}</span>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center justify-between border-t border-white/5 pt-3">

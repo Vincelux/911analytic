@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { generateId } from './lib/ids';
+import { normalizeUrl, labelFromUrl } from './lib/url';
 
 export interface CustomSource {
   id: string;
@@ -11,36 +13,6 @@ export interface CustomSource {
 export type AddSourceError = 'invalidUrl' | 'duplicateUrl';
 
 const STORAGE_KEY = '911analytics.customSources.v1';
-
-function generateId(): string {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}
-
-/** Only http(s) URLs are accepted — rejects javascript:, data: and other schemes before the URL is ever rendered as a link. */
-function normalizeUrl(raw: string): string | null {
-  const trimmed = raw.trim();
-  if (!trimmed) return null;
-  const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
-  try {
-    const parsed = new URL(withProtocol);
-    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
-    if (!parsed.hostname.includes('.')) return null;
-    return parsed.toString();
-  } catch {
-    return null;
-  }
-}
-
-function labelFromUrl(url: string): string {
-  try {
-    return new URL(url).hostname.replace(/^www\./, '');
-  } catch {
-    return url;
-  }
-}
 
 function loadSources(): CustomSource[] {
   if (typeof window === 'undefined') return [];

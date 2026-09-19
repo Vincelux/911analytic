@@ -29,8 +29,8 @@ export interface CarListing {
   id: string;
   model: string;
   generation: string;
-  phase: string;
-  image: string;
+  phase: string | null;
+  image: string | null;
   price: number;
   mileage: number;
   year: number;
@@ -42,19 +42,36 @@ export interface CarListing {
   city: string;
   seller: string;
   sellerType: 'Professionnel' | 'Particulier';
-  sellerRating: number;
-  sellerPhone: string;
-  sellerEmail: string;
+  sellerRating: number | null;
+  sellerPhone: string | null;
+  sellerEmail: string | null;
   listingUrl: string;
   listingSource: string;
-  conformity: number;
+  /** AI conformity score — null for listings added manually, since no AI has evaluated them. */
+  conformity: number | null;
   publishedDaysAgo: number;
   options: CarOption[];
   vigilancePoints: VigilancePoint[];
   negotiationArguments: string[];
   priceHistory: PricePoint[];
   valueAnalysis: ValueAnalysisData;
+  /** Free-text note, only used for manually-added listings. */
+  notes?: string | null;
 }
+
+/** ISO country-code lookup for the countries a listing can be tagged with, used to render flags. */
+export const countryFlagCodes: Record<string, string> = {
+  France: 'FR',
+  Allemagne: 'DE',
+  Italie: 'IT',
+  Espagne: 'ES',
+  Belgique: 'BE',
+  'Pays-Bas': 'NL',
+  Suisse: 'CH',
+  Autriche: 'AT',
+  Portugal: 'PT',
+  Luxembourg: 'LU',
+};
 
 export const generations = ['Classique', 'G-Modell', '964', '993', '996', '997', '991', '992'] as const;
 export type Generation = (typeof generations)[number];
@@ -752,7 +769,7 @@ export function filterListings(listings: CarListing[], filters: FilterState): Ca
     }
     if (filters.rating !== 'Toutes') {
       const minRating = parseFloat(filters.rating);
-      if (car.sellerRating < minRating) return false;
+      if (car.sellerRating == null || car.sellerRating < minRating) return false;
     }
     return true;
   });
