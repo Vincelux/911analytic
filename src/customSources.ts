@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { generateId } from './lib/ids';
+import { useCallback, useEffect, useState } from 'react';
+import { supabase, isSupabaseConfigured } from './lib/supabaseClient';
 import { normalizeUrl, labelFromUrl } from './lib/url';
 
 export interface CustomSource {
@@ -10,61 +10,79 @@ export interface CustomSource {
   addedAt: number;
 }
 
-export type AddSourceError = 'invalidUrl' | 'duplicateUrl';
+export type AddSourceError = 'invalidUrl' | 'duplicateUrl' | 'notAuthenticated';
 
-const STORAGE_KEY = '911analytics.customSources.v1';
-
-function loadSources(): CustomSource[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter(
-      (item): item is CustomSource =>
-        !!item && typeof item.id === 'string' && typeof item.url === 'string' && typeof item.label === 'string'
-    );
-  } catch {
-    return [];
-  }
+interface SourceRow {
+  id: string;
+  url: string;
+  label: string;
+  note: string;
+  created_at: string;
 }
 
-function saveSources(sources: CustomSource[]) {
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(sources));
-  } catch {
-    // Private browsing / quota exceeded — sources stay in-memory for this session only.
-  }
+function fromRow(row: SourceRow): CustomSource {
+  return {
+    id: row.id,
+    url: row.url,
+    label: row.label,
+    note: row.note,
+    addedAt: new Date(row.created_at).getTime(),
+  };
 }
 
+/**
+ * Backed by the `custom_sources` table (not localStorage) so the scheduled
+ * scraping job — which runs server-side — can read the same list. Reads and
+ * writes both require an authenticated session (RLS-enforced); a logged-out
+ * visitor simply sees an empty list.
+ */
 export function useCustomSources() {
-  const [sources, setSources] = useState<CustomSource[]>(() => loadSources());
+  const [sources, setSources] = useState<CustomSource[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const refresh = useCallback(async () => {
+    if (!supabase || !isSupabaseConfigured) {
+      setLoading(false);
+      return;
+    }
+    const { data, error } = await supabase
+      .from('custom_sources')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (!error && data) {
+      setSources((data as SourceRow[]).map(fromRow));
+    }
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
-    saveSources(sources);
-  }, [sources]);
+    void refresh();
+  }, [refresh]);
 
-  const addSource = (url: string, label: string, note: string): AddSourceError | null => {
+  const addSource = async (url: string, label: string, note: string): Promise<AddSourceError | null> => {
+    if (!supabase) return 'notAuthenticated';
     const normalized = normalizeUrl(url);
     if (!normalized) return 'invalidUrl';
-    if (sources.some((s) => s.url.toLowerCase() === normalized.toLowerCase())) {
-      return 'duplicateUrl';
-    }
-    const entry: CustomSource = {
-      id: generateId(),
+
+    const { error } = await supabase.from('custom_sources').insert({
       url: normalized,
       label: label.trim() || labelFromUrl(normalized),
       note: note.trim(),
-      addedAt: Date.now(),
-    };
-    setSources((prev) => [entry, ...prev]);
+    });
+
+    if (error) {
+      if (error.code === '23505') return 'duplicateUrl';
+      return 'notAuthenticated';
+    }
+    await refresh();
     return null;
   };
 
-  const removeSource = (id: string) => {
-    setSources((prev) => prev.filter((s) => s.id !== id));
+  const removeSource = async (id: string) => {
+    if (!supabase) return;
+    await supabase.from('custom_sources').delete().eq('id', id);
+    await refresh();
   };
 
-  return { sources, addSource, removeSource };
+  return { sources, loading, addSource, removeSource };
 }
