@@ -54,7 +54,8 @@ export interface CarListing {
   vigilancePoints: VigilancePoint[];
   negotiationArguments: string[];
   priceHistory: PricePoint[];
-  valueAnalysis: ValueAnalysisData;
+  /** null for listings with no AI-generated valuation yet (e.g. manually-added ones). */
+  valueAnalysis: ValueAnalysisData | null;
   /** Free-text note, only used for manually-added listings. */
   notes?: string | null;
 }

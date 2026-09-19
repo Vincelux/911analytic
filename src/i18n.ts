@@ -162,6 +162,7 @@ export const translations = {
     addListingInvalidUrlError: 'URL invalide — vérifiez le format (ex : https://site.fr).',
     addListingGenericError: "Erreur lors de l'ajout de l'annonce.",
     personalNotes: 'Notes personnelles',
+    notEvaluatedYet: 'pas encore évalué',
   },
   en: {
     tagline: 'European search engine',
@@ -309,6 +310,7 @@ export const translations = {
     addListingInvalidUrlError: 'Invalid URL — check the format (e.g. https://site.com).',
     addListingGenericError: 'Error while adding the listing.',
     personalNotes: 'Personal notes',
+    notEvaluatedYet: 'not evaluated yet',
   },
 } as const;
 

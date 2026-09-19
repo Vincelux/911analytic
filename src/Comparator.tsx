@@ -195,41 +195,47 @@ export default function Comparator({ cars, lang, onClose, onRemove }: Comparator
         <div className="mt-8">
           <h2 className="mb-4 text-xs uppercase tracking-[0.3em] text-white/30">{t('futureValue')}</h2>
           <div className={`grid gap-4 ${gridCols}`}>
-            {cars.map((car) => (
-              <div key={car.id} className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
-                <div className="mb-3 flex items-center justify-between">
-                  <span className="text-xs font-light text-white/50">{[car.generation, car.phase].filter(Boolean).join(' ')}</span>
-                  <span className={`rounded-md px-2 py-0.5 text-[10px] font-medium ${
-                    car.valueAnalysis.trend === 'up'
-                      ? 'bg-emerald-400/10 text-emerald-300'
-                      : car.valueAnalysis.trend === 'stable'
-                      ? 'bg-sky-400/10 text-sky-300'
-                      : 'bg-red-400/10 text-red-300'
-                  }`}>
-                    {car.valueAnalysis.trendLabel}
-                  </span>
+            {cars.map((car) =>
+              car.valueAnalysis ? (
+                <div key={car.id} className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
+                  <div className="mb-3 flex items-center justify-between">
+                    <span className="text-xs font-light text-white/50">{[car.generation, car.phase].filter(Boolean).join(' ')}</span>
+                    <span className={`rounded-md px-2 py-0.5 text-[10px] font-medium ${
+                      car.valueAnalysis.trend === 'up'
+                        ? 'bg-emerald-400/10 text-emerald-300'
+                        : car.valueAnalysis.trend === 'stable'
+                        ? 'bg-sky-400/10 text-sky-300'
+                        : 'bg-red-400/10 text-red-300'
+                    }`}>
+                      {car.valueAnalysis.trendLabel}
+                    </span>
+                  </div>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-3xl font-light text-white">{car.valueAnalysis.retentionScore}</span>
+                    <span className="text-sm font-light text-white/30">/10</span>
+                  </div>
+                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
+                    <div
+                      className={`h-full rounded-full ${
+                        car.valueAnalysis.retentionScore >= 8
+                          ? 'bg-emerald-400'
+                          : car.valueAnalysis.retentionScore >= 6
+                          ? 'bg-amber-400'
+                          : 'bg-red-400'
+                      }`}
+                      style={{ width: `${(car.valueAnalysis.retentionScore / 10) * 100}%` }}
+                    />
+                  </div>
+                  <p className="mt-2 text-[10px] uppercase tracking-wider text-white/30">
+                    {t('rarity')}: {car.valueAnalysis.rarityLabel}
+                  </p>
                 </div>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-light text-white">{car.valueAnalysis.retentionScore}</span>
-                  <span className="text-sm font-light text-white/30">/10</span>
+              ) : (
+                <div key={car.id} className="flex items-center justify-center rounded-2xl border border-white/5 bg-white/[0.01] p-5 text-center text-xs font-light text-white/30">
+                  {[car.generation, car.phase].filter(Boolean).join(' ')} — {t('notEvaluatedYet')}
                 </div>
-                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
-                  <div
-                    className={`h-full rounded-full ${
-                      car.valueAnalysis.retentionScore >= 8
-                        ? 'bg-emerald-400'
-                        : car.valueAnalysis.retentionScore >= 6
-                        ? 'bg-amber-400'
-                        : 'bg-red-400'
-                    }`}
-                    style={{ width: `${(car.valueAnalysis.retentionScore / 10) * 100}%` }}
-                  />
-                </div>
-                <p className="mt-2 text-[10px] uppercase tracking-wider text-white/30">
-                  {t('rarity')}: {car.valueAnalysis.rarityLabel}
-                </p>
-              </div>
-            ))}
+              )
+            )}
           </div>
         </div>
 
