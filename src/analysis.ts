@@ -5,13 +5,15 @@ export type AnalysisBreakdown = {
   score: number;
 };
 
-/** Transparent heuristic used until a real market/valuation service is connected. */
-export function getIndicativeValue(car: CarListing): number {
+/** Transparent heuristic used until a real market/valuation service is connected. Null when the listing has no price to base an estimate on. */
+export function getIndicativeValue(car: CarListing): number | null {
+  if (car.price == null) return null;
   const recent = (car.priceHistory ?? []).slice(-3).map((point) => point.price).filter((price) => price > 0);
   const historyAverage = recent.length ? recent.reduce((sum, price) => sum + price, 0) / recent.length : car.price;
-  const age = Math.max(0, new Date().getFullYear() - car.year);
+  const age = car.year == null ? 0 : Math.max(0, new Date().getFullYear() - car.year);
   const ageAdjustment = Math.max(0.82, 1 - age * 0.006);
-  const mileageAdjustment = Math.max(0.88, 1 - Math.max(0, car.mileage - 50000) / 1000000);
+  const mileageAdjustment =
+    car.mileage == null ? 1 : Math.max(0.88, 1 - Math.max(0, car.mileage - 50000) / 1000000);
   const ratingAdjustment =
     car.sellerRating == null ? 1 : 0.96 + Math.min(0.06, Math.max(0, car.sellerRating - 4) * 0.03);
   const optionsAdjustment = 1 + Math.min(0.04, (car.options?.length ?? 0) * 0.005);

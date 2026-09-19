@@ -72,7 +72,7 @@ export default function Comparator({ cars, lang, onClose, onRemove }: Comparator
               {/* Image */}
               <div className="relative h-40 overflow-hidden">
                 {car.image ? (
-                  <img src={car.image} alt={car.model} className="h-full w-full object-cover" />
+                  <img src={car.image} alt={car.model ?? ''} className="h-full w-full object-cover" />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center bg-white/[0.03]">
                     <CarIcon className="h-8 w-8 text-white/15" />
@@ -85,37 +85,39 @@ export default function Comparator({ cars, lang, onClose, onRemove }: Comparator
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
-                <div className="absolute bottom-2 left-3 flex items-center gap-1.5">
-                  <span className="text-sm">{flagEmoji[car.countryFlag]}</span>
-                  <span className="text-xs font-light text-white/70">{car.country}</span>
-                </div>
+                {car.country && (
+                  <div className="absolute bottom-2 left-3 flex items-center gap-1.5">
+                    <span className="text-sm">{(car.countryFlag && flagEmoji[car.countryFlag]) || '🇪🇺'}</span>
+                    <span className="text-xs font-light text-white/70">{car.country}</span>
+                  </div>
+                )}
               </div>
 
               {/* Info */}
               <div className="p-4">
-                <h3 className="text-base font-light text-white">{car.model}</h3>
+                <h3 className="text-base font-light text-white">{car.model || t('untitledListing')}</h3>
                 <p className="mb-3 text-xs font-light text-white/40">{[car.generation, car.phase, car.year].filter(Boolean).join(' · ')}</p>
 
                 <div className="space-y-1.5 text-sm">
                   <div className="flex justify-between border-b border-white/5 pb-1.5">
                     <span className="font-light text-white/40">{t('price')}</span>
-                    <span className="font-light text-white">{formatPrice(car.price, lang)}</span>
+                    <span className="font-light text-white">{car.price != null ? formatPrice(car.price, lang) : '—'}</span>
                   </div>
                   <div className="flex justify-between border-b border-white/5 pb-1.5">
                     <span className="font-light text-white/40">{t('km')}</span>
-                    <span className="font-light text-white">{formatMileage(car.mileage, lang)}</span>
+                    <span className="font-light text-white">{car.mileage != null ? formatMileage(car.mileage, lang) : '—'}</span>
                   </div>
                   <div className="flex justify-between border-b border-white/5 pb-1.5">
                     <span className="font-light text-white/40">{t('power')}</span>
-                    <span className="font-light text-white">{car.power} ch</span>
+                    <span className="font-light text-white">{car.power != null ? `${car.power} ch` : '—'}</span>
                   </div>
                   <div className="flex justify-between border-b border-white/5 pb-1.5">
                     <span className="font-light text-white/40">{t('fTransmission')}</span>
-                    <span className="font-light text-white">{translateOption(lang, car.transmission)}</span>
+                    <span className="font-light text-white">{car.transmission ? translateOption(lang, car.transmission) : '—'}</span>
                   </div>
                   <div className="flex justify-between border-b border-white/5 pb-1.5">
                     <span className="font-light text-white/40">{t('sellerContact')}</span>
-                    <span className="font-light text-white">{car.seller}</span>
+                    <span className="font-light text-white">{car.seller || t('sellerUnknown')}</span>
                   </div>
                   <div className="flex justify-between border-b border-white/5 pb-1.5">
                     <span className="font-light text-white/40">{t('rating')}</span>

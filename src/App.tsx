@@ -27,6 +27,7 @@ export default function App() {
   const [view, setView] = useState<View>('listing');
   const [sourcesOpen, setSourcesOpen] = useState(false);
   const [addListingOpen, setAddListingOpen] = useState(false);
+  const [editingCar, setEditingCar] = useState<CarListing | null>(null);
   const { sources: customSources, addSource, removeSource } = useCustomSources();
   const [listings, setListings] = useState<CarListing[]>([]);
   const [listingsLoading, setListingsLoading] = useState(true);
@@ -222,7 +223,12 @@ export default function App() {
 
       {/* Detail panel */}
       {selectedCar && (
-        <CarDetail car={selectedCar} lang={lang} onClose={() => setSelectedCar(null)} />
+        <CarDetail
+          car={selectedCar}
+          lang={lang}
+          onClose={() => setSelectedCar(null)}
+          onEdit={() => setEditingCar(selectedCar)}
+        />
       )}
 
       {/* Custom sources panel */}
@@ -236,12 +242,20 @@ export default function App() {
         />
       )}
 
-      {/* Add listing panel */}
-      {addListingOpen && (
+      {/* Add / edit listing panel */}
+      {(addListingOpen || editingCar) && (
         <AddListingDrawer
           lang={lang}
-          onClose={() => setAddListingOpen(false)}
+          editingListing={editingCar ?? undefined}
+          onClose={() => {
+            setAddListingOpen(false);
+            setEditingCar(null);
+          }}
           onAdded={(listing) => setListings((prev) => [listing, ...prev])}
+          onUpdated={(listing) => {
+            setListings((prev) => prev.map((l) => (l.id === listing.id ? listing : l)));
+            setSelectedCar((prev) => (prev && prev.id === listing.id ? listing : prev));
+          }}
         />
       )}
 

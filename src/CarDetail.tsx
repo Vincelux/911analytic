@@ -34,6 +34,7 @@ import {
   User,
   Car as CarIcon,
   StickyNote,
+  Pencil,
 } from 'lucide-react';
 import type { CarListing, PricePoint, ValueAnalysisData, VigilancePoint } from './data';
 import { type Lang, getT } from './i18n';
@@ -116,23 +117,28 @@ interface CarDetailProps {
   car: CarListing;
   lang: Lang;
   onClose: () => void;
+  onEdit: () => void;
 }
 
-export default function CarDetail({ car, lang, onClose }: CarDetailProps) {
+export default function CarDetail({ car, lang, onClose, onEdit }: CarDetailProps) {
   const [shared, setShared] = useState(false);
   const t = getT(lang);
 
   const realisticPrice = getIndicativeValue(car);
   const analysisScore = getAnalysisScore(car);
-  const discount = car.price - realisticPrice;
-  const discountPct = Math.round((discount / car.price) * 100);
-  const pricePosition = Math.min(100, Math.max(0, ((realisticPrice / car.price) - 0.75) / 0.35 * 100));
+  const discount = realisticPrice != null && car.price != null ? car.price - realisticPrice : null;
+  const discountPct = discount != null && car.price ? Math.round((discount / car.price) * 100) : null;
+  const pricePosition =
+    realisticPrice != null && car.price
+      ? Math.min(100, Math.max(0, ((realisticPrice / car.price) - 0.75) / 0.35 * 100))
+      : 0;
 
   const handleShare = async () => {
     const shareUrl = `${window.location.origin}${window.location.pathname}?listing=${encodeURIComponent(car.id)}`;
+    const title = car.model || t('untitledListing');
     const shareData = {
-      title: `${car.model} — 911 Analytics`,
-      text: `${car.model} · ${formatPrice(car.price, lang)}`,
+      title: `${title} — 911 Analytics`,
+      text: car.price != null ? `${title} · ${formatPrice(car.price, lang)}` : title,
       url: shareUrl,
     };
 
@@ -152,17 +158,27 @@ export default function CarDetail({ car, lang, onClose }: CarDetailProps) {
     <>
       <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="fixed bottom-0 right-0 top-0 z-50 w-full max-w-2xl overflow-y-auto border-l border-white/10 bg-[#0d0d0d] shadow-2xl">
-        <button
-          onClick={onClose}
-          aria-label={lang === 'fr' ? 'Fermer' : 'Close'}
-          className="sticky top-4 z-10 ml-auto mr-4 flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/50 backdrop-blur-md transition-all hover:border-white/20 hover:text-white"
-        >
-          <X className="h-4 w-4" />
-        </button>
+        <div className="sticky top-4 z-10 ml-auto mr-4 flex w-fit items-center gap-2">
+          <button
+            onClick={onEdit}
+            aria-label={t('editListing')}
+            title={t('editListing')}
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/50 backdrop-blur-md transition-all hover:border-amber-400/30 hover:text-amber-200"
+          >
+            <Pencil className="h-4 w-4" />
+          </button>
+          <button
+            onClick={onClose}
+            aria-label={lang === 'fr' ? 'Fermer' : 'Close'}
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/50 backdrop-blur-md transition-all hover:border-white/20 hover:text-white"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
 
         <div className="relative -mt-13 h-64 overflow-hidden">
           {car.image ? (
-            <img src={car.image} alt={car.model} className="h-full w-full object-cover" />
+            <img src={car.image} alt={car.model ?? ''} className="h-full w-full object-cover" />
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-white/[0.03]">
               <CarIcon className="h-14 w-14 text-white/15" />
@@ -171,24 +187,30 @@ export default function CarDetail({ car, lang, onClose }: CarDetailProps) {
           <div className="absolute inset-0 bg-gradient-to-t from-[#0d0d0d] via-[#0d0d0d]/40 to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 p-6">
             <div className="mb-2 flex items-center gap-2">
-              <span className="rounded-md bg-amber-400/15 px-2.5 py-1 text-xs font-medium text-amber-300">
-                {[car.generation, car.phase].filter(Boolean).join(' · ')}
-              </span>
-              <span className="flex items-center gap-1.5 rounded-md border border-white/10 bg-black/40 px-2 py-1 text-xs text-white/70 backdrop-blur-md">
-                {flagEmoji[car.countryFlag]} {car.country}
-              </span>
+              {(car.generation || car.phase) && (
+                <span className="rounded-md bg-amber-400/15 px-2.5 py-1 text-xs font-medium text-amber-300">
+                  {[car.generation, car.phase].filter(Boolean).join(' · ')}
+                </span>
+              )}
+              {car.country && (
+                <span className="flex items-center gap-1.5 rounded-md border border-white/10 bg-black/40 px-2 py-1 text-xs text-white/70 backdrop-blur-md">
+                  {(car.countryFlag && flagEmoji[car.countryFlag]) || '🇪🇺'} {car.country}
+                </span>
+              )}
             </div>
-            <h2 className="text-2xl font-light tracking-wide text-white">{car.model}</h2>
-            <p className="text-sm font-light text-white/50">{car.city} · {car.seller}</p>
+            <h2 className="text-2xl font-light tracking-wide text-white">{car.model || t('untitledListing')}</h2>
+            {(car.city || car.seller) && (
+              <p className="text-sm font-light text-white/50">{[car.city, car.seller].filter(Boolean).join(' · ')}</p>
+            )}
           </div>
         </div>
 
         <div className="space-y-8 p-6">
           <div className="grid grid-cols-4 gap-3">
             {[
-              { icon: Calendar, value: car.year.toString(), label: t('year') },
-              { icon: Gauge, value: formatMileage(car.mileage, lang), label: t('km') },
-              { icon: Zap, value: `${car.power} ch`, label: t('power') },
+              { icon: Calendar, value: car.year != null ? car.year.toString() : '—', label: t('year') },
+              { icon: Gauge, value: car.mileage != null ? formatMileage(car.mileage, lang) : '—', label: t('km') },
+              { icon: Zap, value: car.power != null ? `${car.power} ch` : '—', label: t('power') },
               { icon: Star, value: car.sellerRating != null ? `${car.sellerRating.toFixed(1)}/5` : '—', label: t('rating') },
             ].map((s, i) => (
               <div key={i} className="rounded-xl border border-white/5 bg-white/[0.02] p-3 text-center">
@@ -202,8 +224,12 @@ export default function CarDetail({ car, lang, onClose }: CarDetailProps) {
           <div className="flex items-center justify-between rounded-xl border border-white/10 bg-gradient-to-r from-white/[0.04] to-transparent p-5">
             <div>
               <span className="text-xs uppercase tracking-wider text-white/30">{t('price')}</span>
-              <p className="text-3xl font-light tracking-tight text-white">{formatPrice(car.price, lang)}</p>
-              <p className="mt-1 text-xs font-light text-white/40">{car.transmission} · {car.fuelType}</p>
+              <p className="text-3xl font-light tracking-tight text-white">
+                {car.price != null ? formatPrice(car.price, lang) : '—'}
+              </p>
+              {(car.transmission || car.fuelType) && (
+                <p className="mt-1 text-xs font-light text-white/40">{[car.transmission, car.fuelType].filter(Boolean).join(' · ')}</p>
+              )}
             </div>
             <div className="text-right">
               <div className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 ${
@@ -232,12 +258,14 @@ export default function CarDetail({ car, lang, onClose }: CarDetailProps) {
                 ) : (
                   <User className="h-4 w-4 text-amber-300" />
                 )}
-                <span className="text-sm font-light text-white/80">{car.seller}</span>
-                <span className={`rounded px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider ${
-                  car.sellerType === 'Professionnel' ? 'bg-sky-400/10 text-sky-300' : 'bg-amber-400/10 text-amber-300'
-                }`}>
-                  {car.sellerType === 'Professionnel' ? t('pro') : t('private')}
-                </span>
+                <span className="text-sm font-light text-white/80">{car.seller || t('sellerUnknown')}</span>
+                {car.sellerType && (
+                  <span className={`rounded px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider ${
+                    car.sellerType === 'Professionnel' ? 'bg-sky-400/10 text-sky-300' : 'bg-amber-400/10 text-amber-300'
+                  }`}>
+                    {car.sellerType === 'Professionnel' ? t('pro') : t('private')}
+                  </span>
+                )}
               </div>
               {car.sellerRating != null && (
                 <div className="flex items-center gap-1">
@@ -262,10 +290,12 @@ export default function CarDetail({ car, lang, onClose }: CarDetailProps) {
                 )}
               </div>
             )}
-            <a href={car.listingUrl} target="_blank" rel="noopener noreferrer" className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-amber-400/30 bg-amber-400/10 px-4 py-2.5 text-sm font-light text-amber-200 transition-all hover:bg-amber-400/20">
-              <ExternalLink className="h-4 w-4" />
-              {t('seeListingOn')} {car.listingSource}
-            </a>
+            {car.listingUrl && (
+              <a href={car.listingUrl} target="_blank" rel="noopener noreferrer" className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-amber-400/30 bg-amber-400/10 px-4 py-2.5 text-sm font-light text-amber-200 transition-all hover:bg-amber-400/20">
+                <ExternalLink className="h-4 w-4" />
+                {t('seeListingOn')} {car.listingSource || t('externalSite')}
+              </a>
+            )}
           </div>
 
           {car.notes && (
@@ -333,12 +363,14 @@ export default function CarDetail({ car, lang, onClose }: CarDetailProps) {
             <h3 className="mb-3 text-xs uppercase tracking-[0.15em] text-white/30">{t('expertOpinion')}</h3>
             <div className="space-y-2.5">{car.vigilancePoints.map((p, i) => <VigilanceCard key={i} point={p} />)}</div>
 
-            <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.02] p-5">
-              <div className="mb-4 flex items-center justify-between"><div className="flex items-center gap-2"><TrendingDownIcon className="h-4 w-4 text-amber-300" /><span className="text-sm font-light text-white/80">{t('realisticPrice')}</span></div><span className="text-lg font-light text-amber-300">{formatPrice(realisticPrice, lang)}</span></div>
-              <div className="relative mb-2 h-2 rounded-full bg-white/10"><div className="absolute left-0 top-0 h-full rounded-full bg-gradient-to-r from-amber-400/40 to-amber-400/80" style={{ width: `${pricePosition}%` }} /><div className="absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-amber-300 bg-[#0a0a0a] shadow-lg" style={{ left: `${pricePosition}%` }} /></div>
-              <div className="flex items-center justify-between text-xs"><span className="font-light text-white/30">{formatPrice(Math.round(car.price * 0.75), lang)}</span><span className="font-light text-white/30">{formatPrice(Math.round(car.price * 1.1), lang)}</span></div>
-              <div className="mt-3 flex items-center gap-2 rounded-lg bg-amber-400/10 px-3 py-2"><span className="text-xs font-light text-amber-200/80">{t('negotiationMargin')}: <span className="font-medium text-amber-200">{discount >= 0 ? '-' : '+'}{formatPrice(Math.abs(discount), lang)}</span> ({Math.abs(discountPct)}%)</span></div>
-            </div>
+            {realisticPrice != null && car.price != null && discount != null && discountPct != null && (
+              <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.02] p-5">
+                <div className="mb-4 flex items-center justify-between"><div className="flex items-center gap-2"><TrendingDownIcon className="h-4 w-4 text-amber-300" /><span className="text-sm font-light text-white/80">{t('realisticPrice')}</span></div><span className="text-lg font-light text-amber-300">{formatPrice(realisticPrice, lang)}</span></div>
+                <div className="relative mb-2 h-2 rounded-full bg-white/10"><div className="absolute left-0 top-0 h-full rounded-full bg-gradient-to-r from-amber-400/40 to-amber-400/80" style={{ width: `${pricePosition}%` }} /><div className="absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-amber-300 bg-[#0a0a0a] shadow-lg" style={{ left: `${pricePosition}%` }} /></div>
+                <div className="flex items-center justify-between text-xs"><span className="font-light text-white/30">{formatPrice(Math.round(car.price * 0.75), lang)}</span><span className="font-light text-white/30">{formatPrice(Math.round(car.price * 1.1), lang)}</span></div>
+                <div className="mt-3 flex items-center gap-2 rounded-lg bg-amber-400/10 px-3 py-2"><span className="text-xs font-light text-amber-200/80">{t('negotiationMargin')}: <span className="font-medium text-amber-200">{discount >= 0 ? '-' : '+'}{formatPrice(Math.abs(discount), lang)}</span> ({Math.abs(discountPct)}%)</span></div>
+              </div>
+            )}
 
             <div className="mt-4"><p className="mb-3 text-xs uppercase tracking-[0.15em] text-white/30">{t('negotiationArgs')}</p><div className="space-y-2">{car.negotiationArguments.map((arg, i) => <div key={i} className="flex items-start gap-3 rounded-lg border border-white/5 bg-white/[0.02] px-4 py-3"><div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-400/10 text-xs font-medium text-amber-300">{i + 1}</div><p className="text-sm font-light leading-relaxed text-white/60">{arg}</p></div>)}</div></div>
           </div>
