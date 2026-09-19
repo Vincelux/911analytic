@@ -31,6 +31,7 @@ interface FormState {
   model: string;
   generation: string;
   phase: string;
+  image: string;
   price: string;
   mileage: string;
   year: string;
@@ -50,7 +51,7 @@ interface FormState {
 }
 
 const emptyForm: FormState = {
-  model: '', generation: '', phase: '', price: '', mileage: '', year: '', power: '',
+  model: '', generation: '', phase: '', image: '', price: '', mileage: '', year: '', power: '',
   fuelType: '', transmission: '', country: '', city: '', seller: '', sellerType: '',
   sellerRating: '', sellerPhone: '', sellerEmail: '', listingUrl: '', listingSource: '', notes: '',
 };
@@ -60,6 +61,7 @@ function formFromListing(car: CarListing): FormState {
     model: car.model ?? '',
     generation: car.generation ?? '',
     phase: car.phase ?? '',
+    image: car.image ?? '',
     price: car.price != null ? String(car.price) : '',
     mileage: car.mileage != null ? String(car.mileage) : '',
     year: car.year != null ? String(car.year) : '',
@@ -128,6 +130,7 @@ function ListingForm({
           next[key] = value;
         };
         maybeSet('model', result.model);
+        maybeSet('image', result.imageUrl);
         maybeSet('generation', matchOption(result.generation, generations) || undefined);
         maybeSet('phase', result.phase);
         maybeSet('price', result.price != null ? String(Math.round(result.price)) : undefined);
@@ -183,6 +186,7 @@ function ListingForm({
       model: form.model.trim() || null,
       generation: form.generation || null,
       phase: form.phase.trim() || null,
+      image: form.image.trim() || null,
       price: form.price.trim() ? Math.round(Number(form.price)) : null,
       mileage: form.mileage.trim() ? Math.round(Number(form.mileage)) : null,
       year: form.year.trim() ? Math.round(Number(form.year)) : null,
@@ -276,6 +280,20 @@ function ListingForm({
           <div className="col-span-2">
             <label htmlFor="alModel" className={labelClass}>{t('fieldModel')}</label>
             <input id="alModel" type="text" value={form.model} onChange={(e) => update('model', e.target.value)} placeholder={t('fieldModelPlaceholder')} className={textInputClass} />
+          </div>
+          <div className="col-span-2">
+            <label htmlFor="alImage" className={labelClass}>{t('fieldImage')}</label>
+            <div className="flex items-center gap-3">
+              {form.image.trim() && (
+                <img
+                  src={form.image}
+                  alt=""
+                  className="h-12 w-16 shrink-0 rounded-md border border-white/10 object-cover"
+                  onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}
+                />
+              )}
+              <input id="alImage" type="text" inputMode="url" value={form.image} onChange={(e) => update('image', e.target.value)} placeholder={t('fieldImagePlaceholder')} className={textInputClass} />
+            </div>
           </div>
           <div>
             <label htmlFor="alGeneration" className={labelClass}>{t('fieldGeneration')}</label>

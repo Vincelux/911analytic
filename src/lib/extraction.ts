@@ -4,6 +4,7 @@ export interface ExtractionResult {
   model?: string;
   generation?: string;
   phase?: string;
+  imageUrl?: string;
   price?: number;
   mileage?: number;
   year?: number;
