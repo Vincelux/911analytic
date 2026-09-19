@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Plus, Link as LinkIcon, ExternalLink, Trash2, AlertCircle } from 'lucide-react';
+import { X, Plus, Link as LinkIcon, ExternalLink, Trash2, AlertCircle, PlayCircle } from 'lucide-react';
 import { type Lang, type TranslationKey, getT } from './i18n';
 import { useAuth } from './lib/auth';
 import { textInputClass, labelClass } from './lib/formStyles';
@@ -19,6 +19,8 @@ const errorKey: Record<AddSourceError, TranslationKey> = {
   duplicateUrl: 'customSourcesDuplicateUrl',
   notAuthenticated: 'loginErrorGeneric',
 };
+
+const SCRAPE_WORKFLOW_URL = 'https://github.com/Vincelux/911analytic/actions/workflows/scrape.yml';
 
 function SourcesPanel({
   lang,
@@ -56,6 +58,23 @@ function SourcesPanel({
   return (
     <div className="space-y-6 p-6">
       <p className="text-xs font-light leading-relaxed text-white/40">{t('customSourcesDesc')}</p>
+
+      <div className="rounded-xl border border-amber-400/15 bg-amber-400/[0.04] p-4">
+        <div className="mb-2 flex items-center gap-2">
+          <PlayCircle className="h-4 w-4 text-amber-300/80" />
+          <span className="text-xs font-medium text-white/80">{t('runScrapeNow')}</span>
+        </div>
+        <p className="mb-3 text-[11px] font-light leading-relaxed text-white/40">{t('runScrapeNowDesc')}</p>
+        <a
+          href={SCRAPE_WORKFLOW_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex w-full items-center justify-center gap-2 rounded-lg border border-amber-400/30 bg-amber-400/10 px-4 py-2 text-xs font-medium text-amber-200 transition-all hover:bg-amber-400/20"
+        >
+          <ExternalLink className="h-3.5 w-3.5" />
+          {t('openGithubActions')}
+        </a>
+      </div>
 
       <form onSubmit={handleSubmit} className="space-y-3 rounded-xl border border-white/10 bg-white/[0.02] p-4">
         <div>

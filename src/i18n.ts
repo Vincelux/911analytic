@@ -163,6 +163,9 @@ export const translations = {
     addListingGenericError: "Erreur lors de l'ajout de l'annonce.",
     personalNotes: 'Notes personnelles',
     notEvaluatedYet: 'pas encore évalué',
+    runScrapeNow: 'Lancer une vérification maintenant',
+    runScrapeNowDesc: 'Le job automatique tourne une fois par jour. Pour le lancer tout de suite : ouvre GitHub Actions et clique sur "Run workflow".',
+    openGithubActions: 'Ouvrir GitHub Actions',
   },
   en: {
     tagline: 'European search engine',
@@ -311,6 +314,9 @@ export const translations = {
     addListingGenericError: 'Error while adding the listing.',
     personalNotes: 'Personal notes',
     notEvaluatedYet: 'not evaluated yet',
+    runScrapeNow: 'Run a check now',
+    runScrapeNowDesc: 'The automatic job runs once a day. To run it right now: open GitHub Actions and click "Run workflow".',
+    openGithubActions: 'Open GitHub Actions',
   },
 } as const;
 
