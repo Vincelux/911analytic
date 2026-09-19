@@ -1,12 +1,13 @@
 import { supabase, isSupabaseConfigured } from './lib/supabaseClient';
+import { generateId } from './lib/ids';
 import { listings as fallbackListings, type CarListing } from './data';
 
 interface ListingRow {
   id: string;
   model: string;
   generation: string;
-  phase: string;
-  image: string;
+  phase: string | null;
+  image: string | null;
   price: number;
   mileage: number;
   year: number;
@@ -18,18 +19,19 @@ interface ListingRow {
   city: string;
   seller: string;
   seller_type: CarListing['sellerType'];
-  seller_rating: number;
-  seller_phone: string;
-  seller_email: string;
+  seller_rating: number | null;
+  seller_phone: string | null;
+  seller_email: string | null;
   listing_url: string;
   listing_source: string;
-  conformity: number;
+  conformity: number | null;
   published_days_ago: number;
   options: CarListing['options'];
   vigilance_points: CarListing['vigilancePoints'];
   negotiation_arguments: CarListing['negotiationArguments'];
   price_history: CarListing['priceHistory'];
   value_analysis: CarListing['valueAnalysis'];
+  notes: string | null;
 }
 
 function fromRow(row: ListingRow): CarListing {
@@ -62,6 +64,7 @@ function fromRow(row: ListingRow): CarListing {
     negotiationArguments: row.negotiation_arguments,
     priceHistory: row.price_history,
     valueAnalysis: row.value_analysis,
+    notes: row.notes,
   };
 }
 
@@ -85,4 +88,68 @@ export async function fetchListings(): Promise<CarListing[]> {
 
   if (error) throw error;
   return (data as ListingRow[]).map(fromRow);
+}
+
+export interface NewListingInput {
+  model: string;
+  generation: string;
+  phase: string | null;
+  price: number;
+  mileage: number;
+  year: number;
+  power: number;
+  fuelType: string;
+  transmission: string;
+  country: string;
+  countryFlag: string;
+  city: string;
+  seller: string;
+  sellerType: CarListing['sellerType'];
+  sellerRating: number | null;
+  sellerPhone: string | null;
+  sellerEmail: string | null;
+  listingUrl: string;
+  listingSource: string;
+  notes: string | null;
+}
+
+/**
+ * Inserts a manually-found listing. Requires an authenticated Supabase session —
+ * the `listings` table's RLS policy rejects inserts from the anonymous role.
+ */
+export async function insertListing(input: NewListingInput): Promise<CarListing> {
+  if (!supabase) throw new Error('Supabase non configuré.');
+
+  const { data, error } = await supabase
+    .from('listings')
+    .insert({
+      id: generateId(),
+      model: input.model,
+      generation: input.generation,
+      phase: input.phase,
+      image: null,
+      price: input.price,
+      mileage: input.mileage,
+      year: input.year,
+      power: input.power,
+      fuel_type: input.fuelType,
+      transmission: input.transmission,
+      country: input.country,
+      country_flag: input.countryFlag,
+      city: input.city,
+      seller: input.seller,
+      seller_type: input.sellerType,
+      seller_rating: input.sellerRating,
+      seller_phone: input.sellerPhone,
+      seller_email: input.sellerEmail,
+      listing_url: input.listingUrl,
+      listing_source: input.listingSource,
+      conformity: null,
+      notes: input.notes,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return fromRow(data as ListingRow);
 }

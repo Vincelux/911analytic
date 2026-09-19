@@ -1,4 +1,4 @@
-import { X, Check, Share2, Zap, Volume2, Timer, Armchair, ShieldCheck } from 'lucide-react';
+import { X, Check, Share2, Zap, Volume2, Timer, Armchair, ShieldCheck, Car as CarIcon } from 'lucide-react';
 import type { CarListing } from './data';
 import { type Lang, getT, translateOption } from './i18n';
 
@@ -71,7 +71,13 @@ export default function Comparator({ cars, lang, onClose, onRemove }: Comparator
             <div key={car.id} className="overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.04] to-transparent">
               {/* Image */}
               <div className="relative h-40 overflow-hidden">
-                <img src={car.image} alt={car.model} className="h-full w-full object-cover" />
+                {car.image ? (
+                  <img src={car.image} alt={car.model} className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-white/[0.03]">
+                    <CarIcon className="h-8 w-8 text-white/15" />
+                  </div>
+                )}
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-transparent to-transparent" />
                 <button
                   onClick={() => onRemove(car.id)}
@@ -88,7 +94,7 @@ export default function Comparator({ cars, lang, onClose, onRemove }: Comparator
               {/* Info */}
               <div className="p-4">
                 <h3 className="text-base font-light text-white">{car.model}</h3>
-                <p className="mb-3 text-xs font-light text-white/40">{car.generation} · {car.phase} · {car.year}</p>
+                <p className="mb-3 text-xs font-light text-white/40">{[car.generation, car.phase, car.year].filter(Boolean).join(' · ')}</p>
 
                 <div className="space-y-1.5 text-sm">
                   <div className="flex justify-between border-b border-white/5 pb-1.5">
@@ -113,13 +119,17 @@ export default function Comparator({ cars, lang, onClose, onRemove }: Comparator
                   </div>
                   <div className="flex justify-between border-b border-white/5 pb-1.5">
                     <span className="font-light text-white/40">{t('rating')}</span>
-                    <span className="font-light text-white">{car.sellerRating.toFixed(1)}/5</span>
+                    <span className="font-light text-white">{car.sellerRating != null ? `${car.sellerRating.toFixed(1)}/5` : '—'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="font-light text-white/40">{t('conformityAI')}</span>
-                    <span className={`font-medium ${car.conformity >= 85 ? 'text-emerald-300' : car.conformity >= 65 ? 'text-amber-300' : 'text-red-300'}`}>
-                      {car.conformity}%
-                    </span>
+                    {car.conformity != null ? (
+                      <span className={`font-medium ${car.conformity >= 85 ? 'text-emerald-300' : car.conformity >= 65 ? 'text-amber-300' : 'text-red-300'}`}>
+                        {car.conformity}%
+                      </span>
+                    ) : (
+                      <span className="font-light text-white/30">—</span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -137,7 +147,7 @@ export default function Comparator({ cars, lang, onClose, onRemove }: Comparator
                   <th className="px-4 py-3 text-left text-xs font-light uppercase tracking-wider text-white/40">{t('detectedOptions')}</th>
                   {cars.map((car) => (
                     <th key={car.id} className="px-4 py-3 text-center text-xs font-light text-white/60">
-                      {car.generation} {car.phase}
+                      {[car.generation, car.phase].filter(Boolean).join(' ')}
                     </th>
                   ))}
                 </tr>
@@ -188,7 +198,7 @@ export default function Comparator({ cars, lang, onClose, onRemove }: Comparator
             {cars.map((car) => (
               <div key={car.id} className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
                 <div className="mb-3 flex items-center justify-between">
-                  <span className="text-xs font-light text-white/50">{car.generation} {car.phase}</span>
+                  <span className="text-xs font-light text-white/50">{[car.generation, car.phase].filter(Boolean).join(' ')}</span>
                   <span className={`rounded-md px-2 py-0.5 text-[10px] font-medium ${
                     car.valueAnalysis.trend === 'up'
                       ? 'bg-emerald-400/10 text-emerald-300'
