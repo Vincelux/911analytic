@@ -31,6 +31,61 @@ function generateId() {
 }
 
 // --- robots.txt: minimal but honest check against the exact source URL ---
+//
+// Beyond the generic "User-agent: *" block, this also honors any block
+// aimed at AI/LLM crawlers by name (ClaudeBot, GPTBot, CCBot, ...) even
+// though our own declared User-Agent string differs — sites like
+// AutoScout24 exclude those crawlers by name specifically, and the point
+// of that exclusion is clearly "no AI-affiliated tools", not "unless you
+// pick a different name". Respecting the letter of robots.txt while
+// routing around its evident intent isn't a distinction worth making.
+
+const AI_CRAWLER_TOKENS = [
+  'claudebot', 'anthropic-ai', 'gptbot', 'chatgpt-user', 'ccbot',
+  'google-extended', 'applebot-extended', 'omgilibot', 'diffbot', 'bytespider',
+];
+
+function parseRobotsBlocks(text) {
+  const blocks = [];
+  let agents = [];
+  let disallow = [];
+  let sawDirective = false;
+
+  const flush = () => {
+    if (agents.length) blocks.push({ agents, disallow });
+    agents = [];
+    disallow = [];
+    sawDirective = false;
+  };
+
+  for (const rawLine of text.split('\n')) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith('#')) continue;
+    const idx = line.indexOf(':');
+    if (idx === -1) continue;
+    const key = line.slice(0, idx).trim().toLowerCase();
+    const value = line.slice(idx + 1).trim();
+
+    if (key === 'user-agent') {
+      if (sawDirective) flush();
+      agents.push(value.toLowerCase());
+    } else if (key === 'disallow') {
+      sawDirective = true;
+      if (value) disallow.push(value);
+    } else if (key === 'allow') {
+      sawDirective = true;
+    }
+  }
+  flush();
+  return blocks;
+}
+
+function isPathBlocked(blocks, path) {
+  return blocks.some((block) => {
+    const appliesToUs = block.agents.some((a) => a === '*' || AI_CRAWLER_TOKENS.includes(a));
+    return appliesToUs && block.disallow.some((d) => path.startsWith(d));
+  });
+}
 
 async function isAllowedByRobotsTxt(targetUrl) {
   const target = new URL(targetUrl);
@@ -52,24 +107,11 @@ async function isAllowedByRobotsTxt(targetUrl) {
     return { allowed: false, reason: 'robots.txt explicitly prohibits automated access in its comments' };
   }
 
-  const lines = robotsText.split('\n').map((l) => l.trim());
-  let inWildcardBlock = false;
-  const disallowPaths = [];
-  for (const line of lines) {
-    const [rawKey, ...rest] = line.split(':');
-    if (!rawKey) continue;
-    const key = rawKey.trim().toLowerCase();
-    const value = rest.join(':').trim();
-    if (key === 'user-agent') {
-      inWildcardBlock = value === '*';
-    } else if (key === 'disallow' && inWildcardBlock && value) {
-      disallowPaths.push(value);
-    }
+  const blocks = parseRobotsBlocks(robotsText);
+  if (isPathBlocked(blocks, target.pathname)) {
+    return { allowed: false, reason: `robots.txt Disallow rule blocks ${target.pathname} (for "*" or a named AI crawler)` };
   }
-
-  const blocked = disallowPaths.some((path) => target.pathname.startsWith(path));
-  if (blocked) return { allowed: false, reason: `robots.txt Disallow rule blocks ${target.pathname}` };
-  return { allowed: true, reason: 'robots.txt permits this path for User-agent: *' };
+  return { allowed: true, reason: 'robots.txt permits this path' };
 }
 
 // --- HTML fetch + light cleanup (keep structure/links, drop noise) ---

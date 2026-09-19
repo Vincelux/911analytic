@@ -42,7 +42,7 @@ export default function CarCard({ car, isSelected, onToggleSelect, onClick, lang
         {car.image ? (
           <img
             src={car.image}
-            alt={car.model}
+            alt={car.model ?? ''}
             className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
           />
         ) : (
@@ -63,10 +63,12 @@ export default function CarCard({ car, isSelected, onToggleSelect, onClick, lang
         )}
 
         {/* Country flag */}
-        <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-lg border border-white/10 bg-black/40 px-2 py-1 backdrop-blur-md">
-          <span className="text-sm leading-none">{flagEmoji[car.countryFlag] || '🇪🇺'}</span>
-          <span className="text-[10px] font-light text-white/70">{car.country}</span>
-        </div>
+        {car.country && (
+          <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-lg border border-white/10 bg-black/40 px-2 py-1 backdrop-blur-md">
+            <span className="text-sm leading-none">{(car.countryFlag && flagEmoji[car.countryFlag]) || '🇪🇺'}</span>
+            <span className="text-[10px] font-light text-white/70">{car.country}</span>
+          </div>
+        )}
 
         {/* Checkbox */}
         <div className="absolute bottom-3 left-3 z-10" onClick={(e) => e.stopPropagation()}>
@@ -97,25 +99,31 @@ export default function CarCard({ car, isSelected, onToggleSelect, onClick, lang
       {/* Content */}
       <div className="p-4">
         <div className="mb-3">
-          <h3 className="text-lg font-light tracking-wide text-white">{car.model}</h3>
+          <h3 className="text-lg font-light tracking-wide text-white">{car.model || t('untitledListing')}</h3>
           <p className="text-xs font-light text-white/40">
             {[car.generation, car.phase, car.year].filter(Boolean).join(' · ')}
           </p>
         </div>
 
-        <div className="mb-3 flex items-center gap-4 text-xs font-light text-white/50">
-          <span className="flex items-center gap-1.5">
-            <Gauge className="h-3.5 w-3.5 text-white/30" />
-            {formatMileage(car.mileage, lang)}
-          </span>
-          <span className="flex items-center gap-1.5">
-            <Calendar className="h-3.5 w-3.5 text-white/30" />
-            {car.year}
-          </span>
-          <span className="flex items-center gap-1.5">
-            <MapPin className="h-3.5 w-3.5 text-white/30" />
-            {car.city}
-          </span>
+        <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-light text-white/50">
+          {car.mileage != null && (
+            <span className="flex items-center gap-1.5">
+              <Gauge className="h-3.5 w-3.5 text-white/30" />
+              {formatMileage(car.mileage, lang)}
+            </span>
+          )}
+          {car.year != null && (
+            <span className="flex items-center gap-1.5">
+              <Calendar className="h-3.5 w-3.5 text-white/30" />
+              {car.year}
+            </span>
+          )}
+          {car.city && (
+            <span className="flex items-center gap-1.5">
+              <MapPin className="h-3.5 w-3.5 text-white/30" />
+              {car.city}
+            </span>
+          )}
         </div>
 
         {/* Seller info row */}
@@ -126,14 +134,16 @@ export default function CarCard({ car, isSelected, onToggleSelect, onClick, lang
             ) : (
               <User className="h-3.5 w-3.5 text-amber-300/70" />
             )}
-            <span className="text-xs font-light text-white/70">{car.seller}</span>
-            <span className={`rounded px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider ${
-              car.sellerType === 'Professionnel'
-                ? 'bg-sky-400/10 text-sky-300/80'
-                : 'bg-amber-400/10 text-amber-300/80'
-            }`}>
-              {car.sellerType === 'Professionnel' ? t('pro') : t('private')}
-            </span>
+            <span className="text-xs font-light text-white/70">{car.seller || t('sellerUnknown')}</span>
+            {car.sellerType && (
+              <span className={`rounded px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider ${
+                car.sellerType === 'Professionnel'
+                  ? 'bg-sky-400/10 text-sky-300/80'
+                  : 'bg-amber-400/10 text-amber-300/80'
+              }`}>
+                {car.sellerType === 'Professionnel' ? t('pro') : t('private')}
+              </span>
+            )}
           </div>
           {car.sellerRating != null && (
             <div className="flex items-center gap-1">
@@ -146,11 +156,13 @@ export default function CarCard({ car, isSelected, onToggleSelect, onClick, lang
         <div className="flex items-center justify-between border-t border-white/5 pt-3">
           <div>
             <span className="text-[10px] uppercase tracking-wider text-white/30">{t('price')}</span>
-            <p className="text-xl font-light tracking-tight text-white">{formatPrice(car.price, lang)}</p>
+            <p className="text-xl font-light tracking-tight text-white">
+              {car.price != null ? formatPrice(car.price, lang) : '—'}
+            </p>
           </div>
           <div className="text-right">
-            <span className="text-[10px] uppercase tracking-wider text-white/30">{car.transmission}</span>
-            <p className="text-xs font-light text-white/50">{car.power} ch</p>
+            <span className="text-[10px] uppercase tracking-wider text-white/30">{car.transmission || '—'}</span>
+            <p className="text-xs font-light text-white/50">{car.power != null ? `${car.power} ch` : '—'}</p>
           </div>
         </div>
       </div>

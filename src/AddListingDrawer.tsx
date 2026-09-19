@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, LogOut, Plus, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { X, LogOut, Plus, Save, AlertCircle, CheckCircle2, Sparkles, Loader2 } from 'lucide-react';
 import {
   generations,
   fuelTypes,
@@ -9,7 +9,8 @@ import {
 } from './data';
 import { type Lang, getT } from './i18n';
 import { useAuth } from './lib/auth';
-import { insertListing } from './listingsRepository';
+import { insertListing, updateListing, type ListingInput } from './listingsRepository';
+import { extractListing, type ExtractionResult } from './lib/extraction';
 import { normalizeUrl } from './lib/url';
 import { textInputClass, labelClass } from './lib/formStyles';
 import LoginForm from './LoginForm';
@@ -18,9 +19,13 @@ interface AddListingDrawerProps {
   lang: Lang;
   onClose: () => void;
   onAdded: (listing: CarListing) => void;
+  onUpdated?: (listing: CarListing) => void;
+  /** When set, the drawer edits this listing instead of creating a new one. */
+  editingListing?: CarListing;
 }
 
 const countryOptions = Object.keys(countryFlagCodes);
+const sellerTypeOptions = ['Professionnel', 'Particulier'] as const;
 
 interface FormState {
   model: string;
@@ -35,7 +40,7 @@ interface FormState {
   country: string;
   city: string;
   seller: string;
-  sellerType: CarListing['sellerType'];
+  sellerType: string;
   sellerRating: string;
   sellerPhone: string;
   sellerEmail: string;
@@ -45,45 +50,113 @@ interface FormState {
 }
 
 const emptyForm: FormState = {
-  model: '',
-  generation: generations[0],
-  phase: '',
-  price: '',
-  mileage: '',
-  year: '',
-  power: '',
-  fuelType: fuelTypes[0],
-  transmission: transmissions[0],
-  country: countryOptions[0],
-  city: '',
-  seller: '',
-  sellerType: 'Particulier',
-  sellerRating: '',
-  sellerPhone: '',
-  sellerEmail: '',
-  listingUrl: '',
-  listingSource: '',
-  notes: '',
+  model: '', generation: '', phase: '', price: '', mileage: '', year: '', power: '',
+  fuelType: '', transmission: '', country: '', city: '', seller: '', sellerType: '',
+  sellerRating: '', sellerPhone: '', sellerEmail: '', listingUrl: '', listingSource: '', notes: '',
 };
+
+function formFromListing(car: CarListing): FormState {
+  return {
+    model: car.model ?? '',
+    generation: car.generation ?? '',
+    phase: car.phase ?? '',
+    price: car.price != null ? String(car.price) : '',
+    mileage: car.mileage != null ? String(car.mileage) : '',
+    year: car.year != null ? String(car.year) : '',
+    power: car.power != null ? String(car.power) : '',
+    fuelType: car.fuelType ?? '',
+    transmission: car.transmission ?? '',
+    country: car.country ?? '',
+    city: car.city ?? '',
+    seller: car.seller ?? '',
+    sellerType: car.sellerType ?? '',
+    sellerRating: car.sellerRating != null ? String(car.sellerRating) : '',
+    sellerPhone: car.sellerPhone ?? '',
+    sellerEmail: car.sellerEmail ?? '',
+    listingUrl: car.listingUrl ?? '',
+    listingSource: car.listingSource ?? '',
+    notes: car.notes ?? '',
+  };
+}
+
+function matchOption(value: string | undefined, options: readonly string[]): string {
+  if (!value) return '';
+  return options.find((o) => o.toLowerCase() === value.toLowerCase()) ?? '';
+}
 
 function ListingForm({
   lang,
   onAdded,
+  onUpdated,
   onClose,
+  editingListing,
 }: {
   lang: Lang;
   onAdded: (listing: CarListing) => void;
+  onUpdated?: (listing: CarListing) => void;
   onClose: () => void;
+  editingListing?: CarListing;
 }) {
   const t = getT(lang);
   const { user, signOut } = useAuth();
-  const [form, setForm] = useState<FormState>(emptyForm);
+  const isEditing = !!editingListing;
+  const [form, setForm] = useState<FormState>(editingListing ? formFromListing(editingListing) : emptyForm);
+  const [touched, setTouched] = useState<Set<keyof FormState>>(new Set());
+  const [pasteText, setPasteText] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [extracting, setExtracting] = useState(false);
+  const [extractionNote, setExtractionNote] = useState<string | null>(null);
 
   const update = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
+    setTouched((prev) => new Set(prev).add(key));
+  };
+
+  const handleExtract = async () => {
+    if (!form.listingUrl.trim() && !pasteText.trim()) return;
+    setExtracting(true);
+    setExtractionNote(null);
+    setError(null);
+    try {
+      const result: ExtractionResult = await extractListing(form.listingUrl.trim(), pasteText.trim());
+      setForm((prev) => {
+        const next = { ...prev };
+        const maybeSet = (key: keyof FormState, value: string | undefined) => {
+          if (!value || touched.has(key) || next[key].trim() !== '') return;
+          next[key] = value;
+        };
+        maybeSet('model', result.model);
+        maybeSet('generation', matchOption(result.generation, generations) || undefined);
+        maybeSet('phase', result.phase);
+        maybeSet('price', result.price != null ? String(Math.round(result.price)) : undefined);
+        maybeSet('mileage', result.mileage != null ? String(Math.round(result.mileage)) : undefined);
+        maybeSet('year', result.year != null ? String(Math.round(result.year)) : undefined);
+        maybeSet('power', result.power != null ? String(Math.round(result.power)) : undefined);
+        maybeSet('fuelType', matchOption(result.fuelType, fuelTypes) || undefined);
+        maybeSet('transmission', matchOption(result.transmission, transmissions) || undefined);
+        maybeSet('country', matchOption(result.country, countryOptions) || undefined);
+        maybeSet('city', result.city);
+        maybeSet('seller', result.seller);
+        maybeSet('sellerType', matchOption(result.sellerType, sellerTypeOptions) || undefined);
+        maybeSet('sellerPhone', result.sellerPhone);
+        maybeSet('sellerEmail', result.sellerEmail);
+        maybeSet('listingSource', result.listingSource);
+        return next;
+      });
+      if (result.urlBlockedReason) {
+        setExtractionNote(t('extractionUrlBlocked'));
+      } else if (result.urlFetched === false && !pasteText.trim()) {
+        setExtractionNote(t('extractionNothingToAnalyze'));
+      } else {
+        setExtractionNote(t('extractionDone'));
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('extractionError'));
+    } finally {
+      setExtracting(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -91,44 +164,56 @@ function ListingForm({
     setError(null);
     setSuccess(false);
 
-    const required = [form.model, form.generation, form.price, form.mileage, form.year, form.power, form.city, form.seller, form.listingUrl, form.listingSource];
-    if (required.some((v) => !v.trim())) {
-      setError(t('addListingRequiredError'));
+    const hasAnyValue = Object.values(form).some((v) => v.trim() !== '');
+    if (!hasAnyValue) {
+      setError(t('addListingEmptyError'));
       return;
     }
 
-    const normalizedUrl = normalizeUrl(form.listingUrl);
-    if (!normalizedUrl) {
-      setError(t('addListingInvalidUrlError'));
-      return;
+    let normalizedUrl: string | null = null;
+    if (form.listingUrl.trim()) {
+      normalizedUrl = normalizeUrl(form.listingUrl);
+      if (!normalizedUrl) {
+        setError(t('addListingInvalidUrlError'));
+        return;
+      }
     }
+
+    const patch: ListingInput = {
+      model: form.model.trim() || null,
+      generation: form.generation || null,
+      phase: form.phase.trim() || null,
+      price: form.price.trim() ? Math.round(Number(form.price)) : null,
+      mileage: form.mileage.trim() ? Math.round(Number(form.mileage)) : null,
+      year: form.year.trim() ? Math.round(Number(form.year)) : null,
+      power: form.power.trim() ? Math.round(Number(form.power)) : null,
+      fuelType: form.fuelType || null,
+      transmission: form.transmission || null,
+      country: form.country || null,
+      countryFlag: form.country ? countryFlagCodes[form.country] ?? null : null,
+      city: form.city.trim() || null,
+      seller: form.seller.trim() || null,
+      sellerType: (form.sellerType || null) as CarListing['sellerType'] | null,
+      sellerRating: form.sellerRating.trim() ? Number(form.sellerRating) : null,
+      sellerPhone: form.sellerPhone.trim() || null,
+      sellerEmail: form.sellerEmail.trim() || null,
+      listingUrl: normalizedUrl,
+      listingSource: form.listingSource.trim() || null,
+      notes: form.notes.trim() || null,
+    };
 
     setSubmitting(true);
     try {
-      const listing = await insertListing({
-        model: form.model.trim(),
-        generation: form.generation,
-        phase: form.phase.trim() || null,
-        price: Math.round(Number(form.price)),
-        mileage: Math.round(Number(form.mileage)),
-        year: Math.round(Number(form.year)),
-        power: Math.round(Number(form.power)),
-        fuelType: form.fuelType,
-        transmission: form.transmission,
-        country: form.country,
-        countryFlag: countryFlagCodes[form.country] ?? '',
-        city: form.city.trim(),
-        seller: form.seller.trim(),
-        sellerType: form.sellerType,
-        sellerRating: form.sellerRating ? Number(form.sellerRating) : null,
-        sellerPhone: form.sellerPhone.trim() || null,
-        sellerEmail: form.sellerEmail.trim() || null,
-        listingUrl: normalizedUrl,
-        listingSource: form.listingSource.trim(),
-        notes: form.notes.trim() || null,
-      });
-      onAdded(listing);
-      setForm(emptyForm);
+      if (isEditing && editingListing) {
+        const listing = await updateListing(editingListing.id, patch);
+        onUpdated?.(listing);
+      } else {
+        const listing = await insertListing(patch);
+        onAdded(listing);
+        setForm(emptyForm);
+        setTouched(new Set());
+        setPasteText('');
+      }
       setSuccess(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : t('addListingGenericError'));
@@ -157,12 +242,45 @@ function ListingForm({
       <form onSubmit={handleSubmit} className="space-y-3 rounded-xl border border-white/10 bg-white/[0.02] p-4">
         <div className="grid grid-cols-2 gap-3">
           <div className="col-span-2">
+            <label htmlFor="alListingUrl" className={labelClass}>{t('fieldListingUrl')}</label>
+            <input id="alListingUrl" type="text" inputMode="url" value={form.listingUrl} onChange={(e) => update('listingUrl', e.target.value)} placeholder="https://…" className={textInputClass} />
+          </div>
+          <div className="col-span-2">
+            <label htmlFor="alPasteText" className={labelClass}>{t('fieldPasteText')}</label>
+            <textarea
+              id="alPasteText"
+              rows={4}
+              value={pasteText}
+              onChange={(e) => setPasteText(e.target.value)}
+              placeholder={t('fieldPasteTextPlaceholder')}
+              className={textInputClass}
+            />
+          </div>
+          <div className="col-span-2">
+            <button
+              type="button"
+              onClick={() => void handleExtract()}
+              disabled={extracting || (!form.listingUrl.trim() && !pasteText.trim())}
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-amber-400/30 bg-amber-400/10 px-4 py-2.5 text-xs font-medium text-amber-200 transition-all hover:bg-amber-400/20 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {extracting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+              {t('extractionButton')}
+            </button>
+            {extractionNote && (
+              <p className="mt-2 text-[11px] font-light leading-relaxed text-amber-200/70">{extractionNote}</p>
+            )}
+          </div>
+
+          <div className="col-span-2 border-t border-white/5 pt-3" />
+
+          <div className="col-span-2">
             <label htmlFor="alModel" className={labelClass}>{t('fieldModel')}</label>
             <input id="alModel" type="text" value={form.model} onChange={(e) => update('model', e.target.value)} placeholder={t('fieldModelPlaceholder')} className={textInputClass} />
           </div>
           <div>
             <label htmlFor="alGeneration" className={labelClass}>{t('fieldGeneration')}</label>
             <select id="alGeneration" value={form.generation} onChange={(e) => update('generation', e.target.value)} className={textInputClass}>
+              <option value="">—</option>
               {generations.map((g) => <option key={g} value={g}>{g}</option>)}
             </select>
           </div>
@@ -189,18 +307,21 @@ function ListingForm({
           <div>
             <label htmlFor="alFuelType" className={labelClass}>{t('fieldFuelType')}</label>
             <select id="alFuelType" value={form.fuelType} onChange={(e) => update('fuelType', e.target.value)} className={textInputClass}>
+              <option value="">—</option>
               {fuelTypes.map((f) => <option key={f} value={f}>{f}</option>)}
             </select>
           </div>
           <div>
             <label htmlFor="alTransmission" className={labelClass}>{t('fieldTransmission')}</label>
             <select id="alTransmission" value={form.transmission} onChange={(e) => update('transmission', e.target.value)} className={textInputClass}>
+              <option value="">—</option>
               {transmissions.map((tr) => <option key={tr} value={tr}>{tr}</option>)}
             </select>
           </div>
           <div>
             <label htmlFor="alCountry" className={labelClass}>{t('fieldCountry')}</label>
             <select id="alCountry" value={form.country} onChange={(e) => update('country', e.target.value)} className={textInputClass}>
+              <option value="">—</option>
               {countryOptions.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
@@ -214,7 +335,8 @@ function ListingForm({
           </div>
           <div>
             <label htmlFor="alSellerType" className={labelClass}>{t('fieldSellerType')}</label>
-            <select id="alSellerType" value={form.sellerType} onChange={(e) => update('sellerType', e.target.value as CarListing['sellerType'])} className={textInputClass}>
+            <select id="alSellerType" value={form.sellerType} onChange={(e) => update('sellerType', e.target.value)} className={textInputClass}>
+              <option value="">—</option>
               <option value="Particulier">Particulier</option>
               <option value="Professionnel">Professionnel</option>
             </select>
@@ -230,10 +352,6 @@ function ListingForm({
           <div>
             <label htmlFor="alSellerEmail" className={labelClass}>{t('fieldSellerEmail')}</label>
             <input id="alSellerEmail" type="email" value={form.sellerEmail} onChange={(e) => update('sellerEmail', e.target.value)} className={textInputClass} />
-          </div>
-          <div className="col-span-2">
-            <label htmlFor="alListingUrl" className={labelClass}>{t('fieldListingUrl')}</label>
-            <input id="alListingUrl" type="text" inputMode="url" value={form.listingUrl} onChange={(e) => update('listingUrl', e.target.value)} placeholder="https://…" className={textInputClass} />
           </div>
           <div className="col-span-2">
             <label htmlFor="alListingSource" className={labelClass}>{t('fieldListingSource')}</label>
@@ -254,7 +372,7 @@ function ListingForm({
         {success && (
           <div className="flex items-center gap-2 rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-[11px] font-light text-emerald-300">
             <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
-            <span>{t('addListingSuccess')}</span>
+            <span>{isEditing ? t('editListingSuccess') : t('addListingSuccess')}</span>
           </div>
         )}
 
@@ -263,8 +381,8 @@ function ListingForm({
           disabled={submitting}
           className="flex w-full items-center justify-center gap-2 rounded-lg bg-amber-400/15 px-4 py-2.5 text-xs font-medium text-amber-300 transition-all hover:bg-amber-400/25 disabled:opacity-50"
         >
-          <Plus className="h-3.5 w-3.5" />
-          {t('addListingSubmit')}
+          {isEditing ? <Save className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+          {isEditing ? t('editListingSubmit') : t('addListingSubmit')}
         </button>
       </form>
 
@@ -275,7 +393,7 @@ function ListingForm({
   );
 }
 
-export default function AddListingDrawer({ lang, onClose, onAdded }: AddListingDrawerProps) {
+export default function AddListingDrawer({ lang, onClose, onAdded, onUpdated, editingListing }: AddListingDrawerProps) {
   const t = getT(lang);
   const { user, loading } = useAuth();
 
@@ -286,10 +404,10 @@ export default function AddListingDrawer({ lang, onClose, onAdded }: AddListingD
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/5 bg-[#0d0d0d]/95 px-6 py-4 backdrop-blur-xl">
           <div className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-400/10 text-amber-300">
-              <Plus className="h-4 w-4" />
+              {editingListing ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
             </div>
             <h2 className="text-sm font-light tracking-wide text-white">
-              {user ? t('addListing') : t('loginTitle')}
+              {user ? (editingListing ? t('editListing') : t('addListing')) : t('loginTitle')}
             </h2>
           </div>
           <button
@@ -302,7 +420,7 @@ export default function AddListingDrawer({ lang, onClose, onAdded }: AddListingD
         </div>
 
         {loading ? null : user ? (
-          <ListingForm lang={lang} onAdded={onAdded} onClose={onClose} />
+          <ListingForm lang={lang} onAdded={onAdded} onUpdated={onUpdated} onClose={onClose} editingListing={editingListing} />
         ) : (
           <LoginForm lang={lang} onClose={onClose} />
         )}

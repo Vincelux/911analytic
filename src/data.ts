@@ -27,26 +27,27 @@ export interface ValueAnalysisData {
 
 export interface CarListing {
   id: string;
-  model: string;
-  generation: string;
+  /** Nullable: a listing can be saved before every field is known, then completed later. */
+  model: string | null;
+  generation: string | null;
   phase: string | null;
   image: string | null;
-  price: number;
-  mileage: number;
-  year: number;
-  power: number;
-  fuelType: string;
-  transmission: string;
-  country: string;
-  countryFlag: string;
-  city: string;
-  seller: string;
-  sellerType: 'Professionnel' | 'Particulier';
+  price: number | null;
+  mileage: number | null;
+  year: number | null;
+  power: number | null;
+  fuelType: string | null;
+  transmission: string | null;
+  country: string | null;
+  countryFlag: string | null;
+  city: string | null;
+  seller: string | null;
+  sellerType: 'Professionnel' | 'Particulier' | null;
   sellerRating: number | null;
   sellerPhone: string | null;
   sellerEmail: string | null;
-  listingUrl: string;
-  listingSource: string;
+  listingUrl: string | null;
+  listingSource: string | null;
   /** AI conformity score — null for listings added manually, since no AI has evaluated them. */
   conformity: number | null;
   publishedDaysAgo: number;
@@ -752,25 +753,31 @@ export const listings: CarListing[] = [
   },
 ];
 
+/**
+ * Incomplete listings (missing fields, saved as a draft to complete later)
+ * are never excluded solely for lacking the data a given filter checks —
+ * each criterion is skipped when the field is null, so those listings stay
+ * discoverable instead of disappearing from every search.
+ */
 export function filterListings(listings: CarListing[], filters: FilterState): CarListing[] {
   return listings.filter((car) => {
-    if (filters.generation !== 'Toutes' && car.generation !== filters.generation) return false;
-    if (car.year < filters.yearMin || car.year > filters.yearMax) return false;
-    if (car.price < filters.priceMin || car.price > filters.priceMax) return false;
-    if (car.mileage < filters.kmMin || car.mileage > filters.kmMax) return false;
-    if (car.power < filters.powerMin) return false;
-    if (filters.fuelType !== 'Toutes' && car.fuelType !== filters.fuelType) return false;
-    if (filters.transmission !== 'Toutes' && car.transmission !== filters.transmission) return false;
-    if (filters.country !== 'Europe Globale' && car.country !== filters.country) return false;
-    if (filters.sellerType !== 'Tous' && car.sellerType !== filters.sellerType) return false;
+    if (filters.generation !== 'Toutes' && car.generation != null && car.generation !== filters.generation) return false;
+    if (car.year != null && (car.year < filters.yearMin || car.year > filters.yearMax)) return false;
+    if (car.price != null && (car.price < filters.priceMin || car.price > filters.priceMax)) return false;
+    if (car.mileage != null && (car.mileage < filters.kmMin || car.mileage > filters.kmMax)) return false;
+    if (car.power != null && car.power < filters.powerMin) return false;
+    if (filters.fuelType !== 'Toutes' && car.fuelType != null && car.fuelType !== filters.fuelType) return false;
+    if (filters.transmission !== 'Toutes' && car.transmission != null && car.transmission !== filters.transmission) return false;
+    if (filters.country !== 'Europe Globale' && car.country != null && car.country !== filters.country) return false;
+    if (filters.sellerType !== 'Tous' && car.sellerType != null && car.sellerType !== filters.sellerType) return false;
     if (filters.publicationDate !== 'Toutes') {
       if (filters.publicationDate === 'Moins de 24h' && car.publishedDaysAgo >= 1) return false;
       if (filters.publicationDate === 'Moins de 7 jours' && car.publishedDaysAgo >= 7) return false;
       if (filters.publicationDate === 'Moins de 30 jours' && car.publishedDaysAgo >= 30) return false;
     }
-    if (filters.rating !== 'Toutes') {
+    if (filters.rating !== 'Toutes' && car.sellerRating != null) {
       const minRating = parseFloat(filters.rating);
-      if (car.sellerRating == null || car.sellerRating < minRating) return false;
+      if (car.sellerRating < minRating) return false;
     }
     return true;
   });
