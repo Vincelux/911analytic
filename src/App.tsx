@@ -34,6 +34,11 @@ export default function App() {
   const [listingsError, setListingsError] = useState<string | null>(null);
   const t = getT(lang);
 
+  const handleListingUpdated = (listing: CarListing) => {
+    setListings((prev) => prev.map((l) => (l.id === listing.id ? listing : l)));
+    setSelectedCar((prev) => (prev && prev.id === listing.id ? listing : prev));
+  };
+
   useEffect(() => {
     let cancelled = false;
     fetchListings()
@@ -228,6 +233,7 @@ export default function App() {
           lang={lang}
           onClose={() => setSelectedCar(null)}
           onEdit={() => setEditingCar(selectedCar)}
+          onReanalyzed={handleListingUpdated}
         />
       )}
 
@@ -252,10 +258,7 @@ export default function App() {
             setEditingCar(null);
           }}
           onAdded={(listing) => setListings((prev) => [listing, ...prev])}
-          onUpdated={(listing) => {
-            setListings((prev) => prev.map((l) => (l.id === listing.id ? listing : l)));
-            setSelectedCar((prev) => (prev && prev.id === listing.id ? listing : prev));
-          }}
+          onUpdated={handleListingUpdated}
         />
       )}
 
