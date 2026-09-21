@@ -38,6 +38,7 @@ import {
   Sun,
   Smartphone,
   RefreshCw,
+  BookOpen,
 } from 'lucide-react';
 import type { CarListing, PricePoint, ValueAnalysisData, VigilancePoint } from './data';
 import { type Lang, getT, translateOptionLabel } from './i18n';
@@ -140,8 +141,8 @@ interface CarDetailProps {
 
 export default function CarDetail({ car, lang, onClose, onEdit, onReanalyzed }: CarDetailProps) {
   const [shared, setShared] = useState(false);
-  const [projectionYears, setProjectionYears] = useState(3);
-  const [projectionKmPerYear, setProjectionKmPerYear] = useState(10000);
+  const [projectionYears, setProjectionYears] = useState(5);
+  const [projectionKmPerYear, setProjectionKmPerYear] = useState(5000);
   const [reanalyzing, setReanalyzing] = useState(false);
   const { user } = useAuth();
   const t = getT(lang);
@@ -239,6 +240,12 @@ export default function CarDetail({ car, lang, onClose, onEdit, onReanalyzed }: 
               {(car.generation || car.phase) && (
                 <span className="rounded-md bg-amber-400/15 px-2.5 py-1 text-xs font-medium text-amber-300">
                   {[car.generation, car.phase].filter(Boolean).join(' · ')}
+                </span>
+              )}
+              {car.porscheApproved && (
+                <span className="flex items-center gap-1 rounded-md bg-sky-400/15 px-2.5 py-1 text-xs font-medium text-sky-300">
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                  Porsche Approved
                 </span>
               )}
               {car.country && (
@@ -408,6 +415,23 @@ export default function CarDetail({ car, lang, onClose, onEdit, onReanalyzed }: 
               </div>
 
               <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.02] p-5"><p className="mb-3 text-xs uppercase tracking-[0.15em] text-white/30">{t('speculationFactors')}</p><ul className="space-y-2">{car.valueAnalysis.factors.map((factor, i) => <li key={i} className="flex items-start gap-2.5"><div className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" /><span className="text-sm font-light leading-relaxed text-white/55">{factor}</span></li>)}</ul></div>
+            </div>
+          )}
+
+          {car.historyHighlights != null && car.historyHighlights.length > 0 && (
+            <div className="rounded-xl border border-emerald-400/20 bg-emerald-400/[0.04] p-5">
+              <div className="mb-3 flex items-center gap-2">
+                <BookOpen className="h-4 w-4 text-emerald-300" />
+                <span className="text-xs uppercase tracking-[0.15em] text-emerald-300/80">{t('historyHighlightsTitle')}</span>
+              </div>
+              <ul className="space-y-2">
+                {car.historyHighlights.map((point, i) => (
+                  <li key={i} className="flex items-start gap-2.5">
+                    <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-300" />
+                    <span className="text-sm font-light leading-relaxed text-white/70">{point}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
 

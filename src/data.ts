@@ -86,6 +86,10 @@ export interface CarListing {
   notes?: string | null;
   /** Excerpt of the seller's own ad text (pasted by the user or extracted from the page) — feeds the AI's suspicious-listing checks. Distinct from the user's personal `notes`. */
   sellerDescription?: string | null;
+  /** AI-surfaced positive history highlights (service records, ownership count, documented maintenance) found in the seller's description. Empty/absent when the listing has no rich documented history. */
+  historyHighlights?: string[];
+  /** Whether this car is part of the official Porsche Approved certified pre-owned program — set manually or detected from the listing text. Not a regular option: a distinct certification signal. */
+  porscheApproved?: boolean | null;
 }
 
 /** ISO country-code lookup for the countries a listing can be tagged with, used to render flags. */
@@ -136,7 +140,8 @@ export const ratingOptions = ['Toutes', '3 étoiles et +', '4 étoiles et +', '4
 export type Rating = (typeof ratingOptions)[number];
 
 export interface FilterState {
-  generation: Generation | 'Toutes';
+  /** Empty array = no filter (all generations). */
+  generation: Generation[];
   yearMin: number;
   yearMax: number;
   priceMin: number;
@@ -153,7 +158,7 @@ export interface FilterState {
 }
 
 export const defaultFilters: FilterState = {
-  generation: 'Toutes',
+  generation: [],
   yearMin: 1964,
   yearMax: 2026,
   priceMin: 0,
@@ -183,10 +188,11 @@ export const allOptions: (CarOption & { tier: OptionTier })[] = [
   { key: 'pasm', label: 'Suspension pilotée PASM', present: false, tier: 'high' },
   { key: 'sportSuspension', label: 'Suspension sport abaissée (-20 mm)', present: false, tier: 'high' },
   { key: 'axleLift', label: "Levage de l'essieu avant", present: false, tier: 'high' },
-  { key: 'carbonBrakes', label: 'Freins Carbone PCCB', present: false, tier: 'high' },
   { key: 'lsd', label: 'Différentiel à glissement limité', present: false, tier: 'high' },
   { key: 'pdcc', label: 'Stabilisation active PDCC', present: false, tier: 'high' },
   // Notable: genuinely appealing, but desirability varies more by buyer.
+  // (PCCB: excellent but costly to maintain — a plus for track-focused buyers, not a universal must-have.)
+  { key: 'carbonBrakes', label: 'Freins Carbone PCCB', present: false, tier: 'notable' },
   { key: 'sportSeats', label: 'Sièges Sport Plus adaptatifs (18 pos.)', present: false, tier: 'notable' },
   { key: 'fullLeather', label: 'Sellerie cuir intégrale', present: false, tier: 'notable' },
   { key: 'bose', label: 'Système audio haut de gamme (Bose/Burmester)', present: false, tier: 'notable' },
@@ -809,7 +815,7 @@ export const listings: CarListing[] = [
  */
 export function filterListings(listings: CarListing[], filters: FilterState): CarListing[] {
   return listings.filter((car) => {
-    if (filters.generation !== 'Toutes' && car.generation != null && car.generation !== filters.generation) return false;
+    if (filters.generation.length > 0 && car.generation != null && !filters.generation.includes(car.generation as Generation)) return false;
     if (car.year != null && (car.year < filters.yearMin || car.year > filters.yearMax)) return false;
     if (car.price != null && (car.price < filters.priceMin || car.price > filters.priceMax)) return false;
     if (car.mileage != null && (car.mileage < filters.kmMin || car.mileage > filters.kmMax)) return false;

@@ -62,13 +62,21 @@ export default function CarCard({ car, isSelected, onToggleSelect, onClick, lang
           </div>
         )}
 
-        {/* Country flag */}
-        {car.country && (
-          <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-lg border border-white/10 bg-black/40 px-2 py-1 backdrop-blur-md">
-            <span className="text-sm leading-none">{(car.countryFlag && flagEmoji[car.countryFlag]) || '🇪🇺'}</span>
-            <span className="text-[10px] font-light text-white/70">{car.country}</span>
-          </div>
-        )}
+        {/* Country flag + Porsche Approved */}
+        <div className="absolute left-3 top-3 flex flex-col items-start gap-1.5">
+          {car.country && (
+            <div className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-black/40 px-2 py-1 backdrop-blur-md">
+              <span className="text-sm leading-none">{(car.countryFlag && flagEmoji[car.countryFlag]) || '🇪🇺'}</span>
+              <span className="text-[10px] font-light text-white/70">{car.country}</span>
+            </div>
+          )}
+          {car.porscheApproved && (
+            <div className="flex items-center gap-1.5 rounded-lg border border-sky-400/20 bg-sky-950/60 px-2 py-1 backdrop-blur-md">
+              <ShieldCheck className="h-3 w-3 text-sky-300" />
+              <span className="text-[10px] font-medium text-sky-300">Porsche Approved</span>
+            </div>
+          )}
+        </div>
 
         {/* Checkbox */}
         <div className="absolute bottom-3 left-3 z-10" onClick={(e) => e.stopPropagation()}>

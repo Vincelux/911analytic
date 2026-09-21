@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, LogOut, Plus, Save, AlertCircle, CheckCircle2, Sparkles, Loader2 } from 'lucide-react';
+import { X, LogOut, Plus, Save, AlertCircle, CheckCircle2, Sparkles, Loader2, Trash2 } from 'lucide-react';
 import {
   generations,
   fuelTypes,
@@ -11,7 +11,7 @@ import {
 } from './data';
 import { type Lang, getT, translateOptionLabel } from './i18n';
 import { useAuth } from './lib/auth';
-import { insertListing, updateListing, type ListingInput } from './listingsRepository';
+import { insertListing, updateListing, deleteListing, type ListingInput } from './listingsRepository';
 import { extractListing, type ExtractionResult } from './lib/extraction';
 import { requestListingAnalysis } from './lib/analyzeListing';
 import { normalizeUrl } from './lib/url';
@@ -23,6 +23,7 @@ interface AddListingDrawerProps {
   onClose: () => void;
   onAdded: (listing: CarListing) => void;
   onUpdated?: (listing: CarListing) => void;
+  onDeleted?: (id: string) => void;
   /** When set, the drawer edits this listing instead of creating a new one. */
   editingListing?: CarListing;
 }
@@ -98,12 +99,14 @@ function ListingForm({
   lang,
   onAdded,
   onUpdated,
+  onDeleted,
   onClose,
   editingListing,
 }: {
   lang: Lang;
   onAdded: (listing: CarListing) => void;
   onUpdated?: (listing: CarListing) => void;
+  onDeleted?: (id: string) => void;
   onClose: () => void;
   editingListing?: CarListing;
 }) {
@@ -112,10 +115,13 @@ function ListingForm({
   const isEditing = !!editingListing;
   const [form, setForm] = useState<FormState>(editingListing ? formFromListing(editingListing) : emptyForm);
   const [touched, setTouched] = useState<Set<keyof FormState>>(new Set());
+  const [deleting, setDeleting] = useState(false);
   const [selectedOptions, setSelectedOptions] = useState<Set<OptionKey>>(
     new Set(editingListing?.options.filter((o) => o.present).map((o) => o.key) ?? [])
   );
   const [optionsTouched, setOptionsTouched] = useState(false);
+  const [porscheApproved, setPorscheApproved] = useState(editingListing?.porscheApproved ?? false);
+  const [porscheApprovedTouched, setPorscheApprovedTouched] = useState(false);
   const [pasteText, setPasteText] = useState(editingListing?.sellerDescription ?? '');
   const [pasteTextTouched, setPasteTextTouched] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -174,6 +180,9 @@ function ListingForm({
       if (!optionsTouched && result.options?.length) {
         setSelectedOptions((prev) => new Set([...prev, ...result.options!.filter(isOptionKey)]));
       }
+      if (!porscheApprovedTouched && result.porscheApproved) {
+        setPorscheApproved(true);
+      }
       if (!pasteTextTouched && !pasteText.trim() && result.sellerDescriptionExcerpt) {
         setPasteText(result.sellerDescriptionExcerpt);
       }
@@ -188,6 +197,21 @@ function ListingForm({
       setError(err instanceof Error ? err.message : t('extractionError'));
     } finally {
       setExtracting(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!editingListing) return;
+    const confirmed = window.confirm(t('deleteListingConfirm'));
+    if (!confirmed) return;
+    setDeleting(true);
+    setError(null);
+    try {
+      await deleteListing(editingListing.id);
+      onDeleted?.(editingListing.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('addListingGenericError'));
+      setDeleting(false);
     }
   };
 
@@ -234,6 +258,7 @@ function ListingForm({
       listingSource: form.listingSource.trim() || null,
       notes: form.notes.trim() || null,
       sellerDescription: pasteText.trim() || null,
+      porscheApproved,
       options: allOptions
         .filter((o) => selectedOptions.has(o.key))
         .map((o) => ({ key: o.key, label: o.label, present: true })),
@@ -252,6 +277,8 @@ function ListingForm({
         setTouched(new Set());
         setSelectedOptions(new Set());
         setOptionsTouched(false);
+        setPorscheApproved(false);
+        setPorscheApprovedTouched(false);
         setPasteText('');
         setPasteTextTouched(false);
       }
@@ -436,6 +463,20 @@ function ListingForm({
             </div>
           </div>
           <div className="col-span-2">
+            <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-sky-400/20 bg-sky-400/[0.04] px-3 py-2.5 hover:border-sky-400/40">
+              <input
+                type="checkbox"
+                checked={porscheApproved}
+                onChange={(e) => { setPorscheApproved(e.target.checked); setPorscheApprovedTouched(true); }}
+                className="h-4 w-4 shrink-0 rounded border-sky-400/30 bg-transparent accent-sky-400"
+              />
+              <span>
+                <span className="block text-xs font-medium text-sky-200">{t('fieldPorscheApproved')}</span>
+                <span className="block text-[11px] font-light text-white/40">{t('fieldPorscheApprovedDesc')}</span>
+              </span>
+            </label>
+          </div>
+          <div className="col-span-2">
             <label htmlFor="alListingSource" className={labelClass}>{t('fieldListingSource')}</label>
             <input id="alListingSource" type="text" value={form.listingSource} onChange={(e) => update('listingSource', e.target.value)} placeholder={t('fieldListingSourcePlaceholder')} className={textInputClass} />
           </div>
@@ -468,6 +509,18 @@ function ListingForm({
         </button>
       </form>
 
+      {isEditing && (
+        <button
+          type="button"
+          onClick={() => void handleDelete()}
+          disabled={deleting}
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-red-400/20 px-4 py-2.5 text-xs font-light text-red-300/70 transition-all hover:border-red-400/40 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {deleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+          {t('deleteListing')}
+        </button>
+      )}
+
       <button onClick={onClose} className="mt-4 w-full text-center text-xs font-light text-white/30 hover:text-white/50">
         {lang === 'fr' ? 'Fermer' : 'Close'}
       </button>
@@ -475,7 +528,7 @@ function ListingForm({
   );
 }
 
-export default function AddListingDrawer({ lang, onClose, onAdded, onUpdated, editingListing }: AddListingDrawerProps) {
+export default function AddListingDrawer({ lang, onClose, onAdded, onUpdated, onDeleted, editingListing }: AddListingDrawerProps) {
   const t = getT(lang);
   const { user, loading } = useAuth();
 
@@ -502,7 +555,7 @@ export default function AddListingDrawer({ lang, onClose, onAdded, onUpdated, ed
         </div>
 
         {loading ? null : user ? (
-          <ListingForm lang={lang} onAdded={onAdded} onUpdated={onUpdated} onClose={onClose} editingListing={editingListing} />
+          <ListingForm lang={lang} onAdded={onAdded} onUpdated={onUpdated} onDeleted={onDeleted} onClose={onClose} editingListing={editingListing} />
         ) : (
           <LoginForm lang={lang} onClose={onClose} />
         )}

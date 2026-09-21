@@ -103,6 +103,90 @@ function Dropdown({
   );
 }
 
+function MultiSelectDropdown({
+  label,
+  values,
+  options,
+  onChange,
+  allLabel,
+  lang,
+}: {
+  label: string;
+  values: string[];
+  options: readonly string[];
+  onChange: (v: string[]) => void;
+  allLabel: string;
+  lang: Lang;
+}) {
+  const [open, setOpen] = useState(false);
+  const id = useId();
+  const t = getT(lang);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [open]);
+
+  const toggle = (opt: string) => {
+    onChange(values.includes(opt) ? values.filter((v) => v !== opt) : [...values, opt]);
+  };
+
+  const buttonLabel = values.length === 0 ? allLabel : values.length === 1 ? values[0] : `${values.length} ${t('multipleSelected')}`;
+
+  return (
+    <div className="relative">
+      <label htmlFor={id} className="mb-1.5 block text-[10px] uppercase tracking-[0.15em] text-white/30">
+        {label}
+      </label>
+      <button
+        id={id}
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => setOpen((current) => !current)}
+        className="flex w-full items-center justify-between rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs font-light text-white/80 transition-all hover:border-amber-400/30 hover:bg-white/[0.05] focus:outline-none focus:ring-2 focus:ring-amber-400/30"
+      >
+        <span className="truncate">{buttonLabel}</span>
+        <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-white/30 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" aria-hidden="true" onClick={() => setOpen(false)} />
+          <div
+            role="listbox"
+            aria-multiselectable="true"
+            aria-label={label}
+            className="absolute left-0 right-0 top-full z-20 mt-1 max-h-56 overflow-y-auto rounded-lg border border-white/10 bg-[#111111] shadow-2xl"
+          >
+            {options.map((opt) => {
+              const active = values.includes(opt);
+              return (
+                <button
+                  key={opt}
+                  type="button"
+                  role="option"
+                  aria-selected={active}
+                  onClick={() => toggle(opt)}
+                  className={`flex w-full items-center justify-between px-3 py-2 text-xs transition-colors focus:bg-white/5 focus:outline-none ${
+                    active ? 'bg-amber-400/10 text-amber-300' : 'text-white/70 hover:bg-white/5 hover:text-white'
+                  }`}
+                >
+                  <span className="font-light">{opt}</span>
+                  {active && <Check className="h-3 w-3 text-amber-300" />}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function NumberField({
   label,
   value,
@@ -329,7 +413,7 @@ function StarRating({
 function getActiveSummary(filters: FilterState, lang: Lang): string[] {
   const chips: string[] = [];
   const t = getT(lang);
-  if (filters.generation !== 'Toutes') chips.push(`${t('fGeneration')}: ${filters.generation}`);
+  if (filters.generation.length > 0) chips.push(`${t('fGeneration')}: ${filters.generation.join(', ')}`);
   if (filters.yearMin > defaultFilters.yearMin || filters.yearMax < defaultFilters.yearMax) {
     chips.push(`${filters.yearMin}–${filters.yearMax}`);
   }
@@ -416,7 +500,7 @@ export default function FilterPanel({ filters, onChange, lang }: FilterPanelProp
           <div className="border-t border-white/5" />
           <div className="mx-auto max-w-7xl px-6 py-4">
             <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
-              <Dropdown label={t('fGeneration')} value={filters.generation} options={['Toutes', ...generations]} onSelect={(v) => update('generation', v as Generation | 'Toutes')} lang={lang} />
+              <MultiSelectDropdown label={t('fGeneration')} values={filters.generation} options={generations} onChange={(v) => update('generation', v as Generation[])} allLabel={t('optAll')} lang={lang} />
               <RangeFields label={t('fYear')} valueMin={filters.yearMin} valueMax={filters.yearMax} onChangeMin={(v) => update('yearMin', v)} onChangeMax={(v) => update('yearMax', v)} min={defaultFilters.yearMin} />
               <RangeFields label={t('fBudget')} valueMin={filters.priceMin} valueMax={filters.priceMax} onChangeMin={(v) => update('priceMin', v)} onChangeMax={(v) => update('priceMax', v)} />
               <RangeFields label={t('fMileage')} valueMin={filters.kmMin} valueMax={filters.kmMax} onChangeMin={(v) => update('kmMin', v)} onChangeMax={(v) => update('kmMax', v)} />
