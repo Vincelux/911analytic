@@ -5,7 +5,6 @@ export type Lang = 'fr' | 'en';
 const optionLabelsEn: Record<OptionKey, string> = {
   x51: 'X51 Powerkit',
   pse: 'PSE Sport Exhaust',
-  chrono: 'Chrono Plus clock',
   sportSeats: 'Adaptive Sport Seats Plus (18-way)',
   sportChrono: 'Sport Chrono Package',
   carbonBrakes: 'PCCB Carbon Brakes',
@@ -21,6 +20,7 @@ const optionLabelsEn: Record<OptionKey, string> = {
   carbonTrim: 'Carbon trim package (interior/exterior)',
   fullLeather: 'Full leather upholstery',
   sunroof: 'Sunroof / panoramic roof',
+  carPlay: 'Apple CarPlay / Android Auto',
 };
 
 /** Translates a CarOption.key to a localized label; falls back to the given French label. */
@@ -109,6 +109,7 @@ export const translations = {
     expertOpinion: "Avis de l'Expert IA",
     realisticPrice: 'Prix de transaction réaliste',
     negotiationMargin: 'Marge de négociation estimée',
+    realisticPriceExplanation: "Cette estimation compare le prix affiché à une valeur indicative calculée à partir de l'historique de prix connu, ajustée selon l'âge du véhicule, son kilométrage, la note du vendeur et les options présentes. C'est un repère de négociation, pas une expertise.",
     valueProjectionTitle: 'Simulateur de valeur future',
     projectionYears: 'Durée de possession (ans)',
     projectionKmPerYear: 'Km parcourus / an',
@@ -291,6 +292,7 @@ export const translations = {
     expertOpinion: 'AI Expert Opinion',
     realisticPrice: 'Realistic transaction price',
     negotiationMargin: 'Estimated negotiation margin',
+    realisticPriceExplanation: "This estimate compares the listed price to an indicative value computed from known price history, adjusted for the car's age, mileage, seller rating and present options. It's a negotiation reference point, not a professional appraisal.",
     valueProjectionTitle: 'Future value simulator',
     projectionYears: 'Holding period (years)',
     projectionKmPerYear: 'Km driven / year',

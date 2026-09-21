@@ -1,6 +1,7 @@
-import { X, Check, Share2, Zap, Volume2, Timer, Armchair, ShieldCheck, Gauge, Star, Sun, Car as CarIcon } from 'lucide-react';
+import { X, Check, Share2, Zap, Volume2, Timer, Armchair, ShieldCheck, Gauge, Star, Sun, Smartphone, TrendingDown, Car as CarIcon } from 'lucide-react';
 import { allOptions, type CarListing } from './data';
 import { type Lang, getT, translateOption, translateOptionLabel } from './i18n';
+import { getIndicativeValue } from './analysis';
 
 function formatPrice(price: number, lang: Lang): string {
   return new Intl.NumberFormat(lang === 'fr' ? 'fr-FR' : 'en-GB').format(price) + ' €';
@@ -18,7 +19,6 @@ const flagEmoji: Record<string, string> = {
 const optionIcons: Record<string, typeof Zap> = {
   x51: Zap,
   pse: Volume2,
-  chrono: Timer,
   sportSeats: Armchair,
   sportChrono: Timer,
   carbonBrakes: ShieldCheck,
@@ -34,6 +34,7 @@ const optionIcons: Record<string, typeof Zap> = {
   fullLeather: Armchair,
   sportSuspension: Gauge,
   sunroof: Sun,
+  carPlay: Smartphone,
 };
 
 const optionCatalogIndex: Record<string, number> = Object.fromEntries(allOptions.map((o, i) => [o.key, i]));
@@ -214,7 +215,41 @@ export default function Comparator({ cars, lang, onClose, onRemove }: Comparator
           </div>
         </div>
 
-        {/* Value analysis comparison */}
+        {/* Realistic price comparison — instant heuristic, no AI pass needed */}
+        <div className="mt-8">
+          <h2 className="mb-4 text-xs uppercase tracking-[0.3em] text-white/30">{t('realisticPrice')}</h2>
+          <div className={`grid gap-4 ${gridCols}`}>
+            {cars.map((car) => {
+              const realisticPrice = getIndicativeValue(car);
+              const discount = realisticPrice != null && car.price != null ? car.price - realisticPrice : null;
+              const discountPct = discount != null && car.price ? Math.round((discount / car.price) * 100) : null;
+              return (
+                <div key={car.id} className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
+                  <div className="mb-3 text-xs font-light text-white/50">{[car.generation, car.phase].filter(Boolean).join(' ')}</div>
+                  {realisticPrice != null ? (
+                    <>
+                      <div className="mb-1 flex items-center gap-1.5">
+                        <TrendingDown className="h-3.5 w-3.5 text-amber-300" />
+                        <span className="text-[10px] uppercase tracking-wider text-white/30">{t('realisticPrice')}</span>
+                      </div>
+                      <div className="text-xl font-light text-amber-300">{formatPrice(realisticPrice, lang)}</div>
+                      {discount != null && discountPct != null && (
+                        <p className="mt-1 text-xs font-light text-amber-200/70">
+                          {t('negotiationMargin')}: <span className="font-medium">{discount >= 0 ? '-' : '+'}{formatPrice(Math.abs(discount), lang)}</span> ({Math.abs(discountPct)}%)
+                        </p>
+                      )}
+                      <p className="mt-2 text-[10px] font-light leading-relaxed text-white/25">{t('realisticPriceExplanation')}</p>
+                    </>
+                  ) : (
+                    <p className="text-xs font-light text-white/30">{t('projectionUnavailable')}</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* AI value analysis comparison — only available once the expert-analysis pass has run */}
         <div className="mt-8">
           <h2 className="mb-4 text-xs uppercase tracking-[0.3em] text-white/30">{t('futureValue')}</h2>
           <div className={`grid gap-4 ${gridCols}`}>

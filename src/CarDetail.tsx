@@ -35,9 +35,11 @@ import {
   Car as CarIcon,
   StickyNote,
   Pencil,
+  Sun,
+  Smartphone,
 } from 'lucide-react';
 import type { CarListing, PricePoint, ValueAnalysisData, VigilancePoint } from './data';
-import { type Lang, getT } from './i18n';
+import { type Lang, getT, translateOptionLabel } from './i18n';
 import { getAnalysisScore, getIndicativeValue, getValueProjection } from './analysis';
 
 function formatPrice(price: number, lang: Lang): string {
@@ -56,10 +58,22 @@ const flagEmoji: Record<string, string> = {
 const optionIcons: Record<string, typeof Zap> = {
   x51: Zap,
   pse: Volume2,
-  chrono: Timer,
   sportSeats: Armchair,
   sportChrono: Timer,
   carbonBrakes: ShieldCheck,
+  pasm: Gauge,
+  pdcc: Gauge,
+  lsd: Gauge,
+  rearSteering: Gauge,
+  matrixLed: Zap,
+  bose: Volume2,
+  axleLift: Zap,
+  pts: Star,
+  carbonTrim: ShieldCheck,
+  fullLeather: Armchair,
+  sportSuspension: Gauge,
+  sunroof: Sun,
+  carPlay: Smartphone,
 };
 
 interface CustomTooltipProps {
@@ -322,7 +336,7 @@ export default function CarDetail({ car, lang, onClose, onEdit }: CarDetailProps
                       <div className={`flex h-8 w-8 items-center justify-center rounded-md ${opt.present ? 'bg-emerald-400/10 text-emerald-300' : 'bg-white/5 text-white/25'}`}>
                         <Icon className="h-4 w-4" />
                       </div>
-                      <span className={`text-sm font-light ${opt.present ? 'text-white/90' : 'text-white/40'}`}>{opt.label}</span>
+                      <span className={`text-sm font-light ${opt.present ? 'text-white/90' : 'text-white/40'}`}>{translateOptionLabel(lang, opt.key, opt.label)}</span>
                     </div>
                     {opt.present ? <div className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-400/15"><Check className="h-3 w-3 text-emerald-300" /></div> : <div className="flex h-5 w-5 items-center justify-center rounded-full bg-white/5"><X className="h-3 w-3 text-white/25" /></div>}
                   </div>
@@ -372,6 +386,7 @@ export default function CarDetail({ car, lang, onClose, onEdit }: CarDetailProps
                 <div className="relative mb-2 h-2 rounded-full bg-white/10"><div className="absolute left-0 top-0 h-full rounded-full bg-gradient-to-r from-amber-400/40 to-amber-400/80" style={{ width: `${pricePosition}%` }} /><div className="absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-amber-300 bg-[#0a0a0a] shadow-lg" style={{ left: `${pricePosition}%` }} /></div>
                 <div className="flex items-center justify-between text-xs"><span className="font-light text-white/30">{formatPrice(Math.round(car.price * 0.75), lang)}</span><span className="font-light text-white/30">{formatPrice(Math.round(car.price * 1.1), lang)}</span></div>
                 <div className="mt-3 flex items-center gap-2 rounded-lg bg-amber-400/10 px-3 py-2"><span className="text-xs font-light text-amber-200/80">{t('negotiationMargin')}: <span className="font-medium text-amber-200">{discount >= 0 ? '-' : '+'}{formatPrice(Math.abs(discount), lang)}</span> ({Math.abs(discountPct)}%)</span></div>
+                <p className="mt-3 text-[11px] font-light leading-relaxed text-white/30">{t('realisticPriceExplanation')}</p>
               </div>
             )}
 
@@ -389,7 +404,7 @@ export default function CarDetail({ car, lang, onClose, onEdit }: CarDetailProps
                     min={0}
                     max={30}
                     value={projectionYears}
-                    onChange={(e) => setProjectionYears(Math.max(0, Number(e.target.value)))}
+                    onChange={(e) => { const n = Number(e.target.value); setProjectionYears(Number.isFinite(n) ? Math.max(0, n) : 0); }}
                     className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm font-light text-white outline-none transition-colors focus:border-amber-400/40"
                   />
                 </div>
@@ -401,7 +416,7 @@ export default function CarDetail({ car, lang, onClose, onEdit }: CarDetailProps
                     min={0}
                     step={1000}
                     value={projectionKmPerYear}
-                    onChange={(e) => setProjectionKmPerYear(Math.max(0, Number(e.target.value)))}
+                    onChange={(e) => { const n = Number(e.target.value); setProjectionKmPerYear(Number.isFinite(n) ? Math.max(0, n) : 0); }}
                     className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm font-light text-white outline-none transition-colors focus:border-amber-400/40"
                   />
                 </div>

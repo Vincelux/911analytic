@@ -136,9 +136,9 @@ const extractionTool = {
         items: {
           type: 'string',
           enum: [
-            'x51', 'pse', 'chrono', 'sportSeats', 'sportChrono', 'carbonBrakes',
+            'x51', 'pse', 'sportSeats', 'sportChrono', 'carbonBrakes',
             'pasm', 'sportSuspension', 'pdcc', 'lsd', 'rearSteering', 'matrixLed',
-            'bose', 'axleLift', 'pts', 'carbonTrim', 'fullLeather', 'sunroof',
+            'bose', 'axleLift', 'pts', 'carbonTrim', 'fullLeather', 'sunroof', 'carPlay',
           ],
         },
       },
@@ -158,7 +158,7 @@ const extractionTool = {
 // the model above has something concrete to match against.
 const OPTIONS_HINT =
   'x51=X51 Powerkit (964 power upgrade); pse=Porsche Sport Exhaust/échappement sport; ' +
-  'chrono=Chrono Plus dashboard clock; sportSeats=sport seats/sièges sport; ' +
+  'sportSeats=sport seats/sièges sport; ' +
   'sportChrono=Sport Chrono Package/Pack Sport Chrono; carbonBrakes=PCCB/ceramic brakes/freins carbone; ' +
   'pasm=PASM/adaptive suspension/suspension pilotée; pdcc=PDCC/active roll stabilization; ' +
   'lsd=limited-slip differential/différentiel autobloquant/Sperrdifferential; ' +
@@ -167,7 +167,8 @@ const OPTIONS_HINT =
   'axleLift=front axle lift/levage essieu avant/Liftsystem; pts=Paint to Sample/peinture spéciale; ' +
   'carbonTrim=carbon trim package/pack carbone; fullLeather=full leather/sellerie cuir intégrale; ' +
   'sportSuspension=lowered sport suspension -20mm (static, distinct from adaptive PASM)/suspension sport abaissée; ' +
-  'sunroof=sunroof/panoramic roof/toit ouvrant/toit panoramique/Schiebedach.';
+  'sunroof=sunroof/panoramic roof/toit ouvrant/toit panoramique/Schiebedach; ' +
+  'carPlay=Apple CarPlay/Android Auto/smartphone integration.';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
