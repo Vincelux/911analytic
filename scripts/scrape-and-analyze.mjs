@@ -22,7 +22,6 @@ const USER_AGENT = '911AnalyticsPersonalBot/1.0 (+personal, non-commercial use)'
 const OPTION_LABELS = {
   x51: 'X51 Powerkit',
   pse: 'Échappement Sport PSE',
-  chrono: 'Chrono Plus',
   sportSeats: 'Sièges Sport Plus adaptatifs (18 pos.)',
   sportChrono: 'Pack Sport Chrono',
   carbonBrakes: 'Freins Carbone PCCB',
@@ -38,6 +37,7 @@ const OPTION_LABELS = {
   carbonTrim: 'Pack carbone (intérieur/extérieur)',
   fullLeather: 'Sellerie cuir intégrale',
   sunroof: 'Toit ouvrant / panoramique',
+  carPlay: 'Apple CarPlay / Android Auto',
 };
 // Buying-priority tier, kept in sync with src/data.ts's allOptions — used to
 // weight the negotiation/value-factor prompt below.
@@ -45,12 +45,12 @@ const OPTION_TIERS = {
   sportChrono: 'high', pse: 'high', rearSteering: 'high', pasm: 'high',
   sportSuspension: 'high', axleLift: 'high', carbonBrakes: 'high', lsd: 'high', pdcc: 'high',
   sportSeats: 'notable', fullLeather: 'notable', bose: 'notable', sunroof: 'notable',
-  matrixLed: 'notable', pts: 'notable', x51: 'notable',
-  carbonTrim: 'appeal', chrono: 'appeal',
+  matrixLed: 'notable', pts: 'notable', x51: 'notable', carPlay: 'notable',
+  carbonTrim: 'appeal',
 };
 const OPTIONS_HINT =
   'x51=X51 Powerkit (964 power upgrade); pse=Porsche Sport Exhaust/échappement sport; ' +
-  'chrono=Chrono Plus dashboard clock; sportSeats=sport seats/sièges sport; ' +
+  'sportSeats=sport seats/sièges sport; ' +
   'sportChrono=Sport Chrono Package/Pack Sport Chrono; carbonBrakes=PCCB/ceramic brakes/freins carbone; ' +
   'pasm=PASM/adaptive suspension/suspension pilotée; pdcc=PDCC/active roll stabilization; ' +
   'lsd=limited-slip differential/différentiel autobloquant/Sperrdifferential; ' +
@@ -59,7 +59,8 @@ const OPTIONS_HINT =
   'axleLift=front axle lift/levage essieu avant/Liftsystem; pts=Paint to Sample/peinture spéciale; ' +
   'carbonTrim=carbon trim package/pack carbone; fullLeather=full leather/sellerie cuir intégrale; ' +
   'sportSuspension=lowered sport suspension -20mm (static, distinct from adaptive PASM)/suspension sport abaissée; ' +
-  'sunroof=sunroof/panoramic roof/toit ouvrant/toit panoramique/Schiebedach.';
+  'sunroof=sunroof/panoramic roof/toit ouvrant/toit panoramique/Schiebedach; ' +
+  'carPlay=Apple CarPlay/Android Auto/smartphone integration.';
 
 function requireEnv(name) {
   const value = process.env[name];

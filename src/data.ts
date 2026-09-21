@@ -1,7 +1,6 @@
 export type OptionKey =
   | 'x51'
   | 'pse'
-  | 'chrono'
   | 'sportSeats'
   | 'sportChrono'
   | 'carbonBrakes'
@@ -16,7 +15,8 @@ export type OptionKey =
   | 'pts'
   | 'carbonTrim'
   | 'fullLeather'
-  | 'sunroof';
+  | 'sunroof'
+  | 'carPlay';
 
 /** Rough buying-priority tier: how much this option tends to matter to value/negotiation. */
 export type OptionTier = 'high' | 'notable' | 'appeal';
@@ -190,9 +190,9 @@ export const allOptions: (CarOption & { tier: OptionTier })[] = [
   { key: 'matrixLed', label: 'Phares LED Matrix (PDLS+)', present: false, tier: 'notable' },
   { key: 'pts', label: 'Peinture spéciale / Paint to Sample', present: false, tier: 'notable' },
   { key: 'x51', label: 'X51 Powerkit', present: false, tier: 'notable' },
+  { key: 'carPlay', label: 'Apple CarPlay / Android Auto', present: false, tier: 'notable' },
   // Cosmetic / minor.
   { key: 'carbonTrim', label: 'Pack carbone (intérieur/extérieur)', present: false, tier: 'appeal' },
-  { key: 'chrono', label: 'Horloge Chrono Plus', present: false, tier: 'appeal' },
 ];
 
 function opts(present: OptionKey[]): CarOption[] {
@@ -224,7 +224,7 @@ export const listings: CarListing[] = [
     listingSource: "LeBonCoin",
     conformity: 72,
     publishedDaysAgo: 2,
-    options: opts(['pse', 'chrono']),
+    options: opts(['pse']),
     vigilancePoints: [
       { severity: 'critical', title: 'Alerte Cylindres Rayés', description: 'Moteur 3.8 Phase I — risque connu de rayures de cylindre. Test Piwi impératif + contrôle compression.' },
       { severity: 'warning', title: 'Embrayage non documenté', description: 'Aucune facture de remplacement mentionnée. Budget prévisionnel ~1 200 € à prévoir.' },
@@ -275,7 +275,7 @@ export const listings: CarListing[] = [
     listingSource: "La Centrale",
     conformity: 85,
     publishedDaysAgo: 1,
-    options: opts(['x51', 'pse', 'chrono', 'sportSeats', 'sportChrono']),
+    options: opts(['x51', 'pse', 'sportSeats', 'sportChrono']),
     vigilancePoints: [
       { severity: 'warning', title: 'Distribution à vérifier', description: 'Courroie accessoire à 60 000 km non facturée. Contrôle visuel recommandé.' },
       { severity: 'info', title: 'Coque PCM 3.0', description: 'Mise à jour firmware PCM conseillée pour compatibilité Bluetooth récente.' },
@@ -326,7 +326,7 @@ export const listings: CarListing[] = [
     listingSource: "mobile.de",
     conformity: 91,
     publishedDaysAgo: 0,
-    options: opts(['pse', 'chrono', 'sportSeats', 'sportChrono', 'carbonBrakes']),
+    options: opts(['pse', 'sportSeats', 'sportChrono', 'carbonBrakes']),
     vigilancePoints: [
       { severity: 'info', title: 'Première révision des 40 000 km', description: 'Approche de la révision majeure. Vérifier que le carnet est à jour.' },
       { severity: 'info', title: 'PCM 3.1', description: 'Système de navigation potentiellement non mis à jour. Mise à jour possible chez Porsche.' },
@@ -375,7 +375,7 @@ export const listings: CarListing[] = [
     listingSource: "mobile.de",
     conformity: 95,
     publishedDaysAgo: 3,
-    options: opts(['pse', 'chrono', 'sportSeats', 'sportChrono', 'carbonBrakes']),
+    options: opts(['pse', 'sportSeats', 'sportChrono', 'carbonBrakes']),
     vigilancePoints: [
       { severity: 'warning', title: 'Historique piste à vérifier', description: 'GT3 potentiellement utilisée en track days. Demander le data logger et l\'historique des tours.' },
       { severity: 'info', title: 'Rodage moteur', description: 'Vérifier que le rodage des 3 000 km a été respecté (indicateur dans le PCM).' },
@@ -474,7 +474,7 @@ export const listings: CarListing[] = [
     listingSource: "AutoScout24",
     conformity: 93,
     publishedDaysAgo: 1,
-    options: opts(['pse', 'chrono', 'sportSeats', 'sportChrono', 'carbonBrakes']),
+    options: opts(['pse', 'sportSeats', 'sportChrono', 'carbonBrakes']),
     vigilancePoints: [
       { severity: 'info', title: 'Garantie constructeur', description: 'Véhicule encore sous garantie Porsche jusqu\'en 2024. Vérifier le transfert.' },
       { severity: 'info', title: 'Mises à jour logicielles', description: 'Vérifier que toutes les campagnes de rappel et mises à jour PCM ont été effectuées.' },
@@ -522,7 +522,7 @@ export const listings: CarListing[] = [
     listingSource: "Coches.net",
     conformity: 58,
     publishedDaysAgo: 7,
-    options: opts(['chrono', 'sportSeats']),
+    options: opts(['sportSeats']),
     vigilancePoints: [
       { severity: 'critical', title: 'Alerte IMS / RMS', description: '996 Phase II — roulement IMS et joint RMS à risque. Remplacement impératif si jamais fait.' },
       { severity: 'critical', title: 'Rayures cylindres', description: 'Moteur M96 connu pour les rayures de cylindre. Test compression + endoscopie recommandés.' },
@@ -573,7 +573,7 @@ export const listings: CarListing[] = [
     listingSource: "AutoScout24",
     conformity: 94,
     publishedDaysAgo: 4,
-    options: opts(['pse', 'chrono', 'sportSeats', 'sportChrono', 'carbonBrakes']),
+    options: opts(['pse', 'sportSeats', 'sportChrono', 'carbonBrakes']),
     vigilancePoints: [
       { severity: 'info', title: 'Turbo variable', description: 'Géométrie variable des turbos à inspecter. Pas de défaut connu mais entretien crucial.' },
       { severity: 'info', title: 'PCCB', description: 'Freins carbone céramique à inspecter pour fissures. Remplacement très coûteux si nécessaire.' },
@@ -672,7 +672,7 @@ export const listings: CarListing[] = [
     listingSource: "Willhaben",
     conformity: 89,
     publishedDaysAgo: 6,
-    options: opts(['pse', 'chrono', 'sportSeats', 'sportChrono']),
+    options: opts(['pse', 'sportSeats', 'sportChrono']),
     vigilancePoints: [
       { severity: 'info', title: 'Pack Sport Chrono', description: 'Vérifier le bon fonctionnement du bouton Sport Plus sur le volant.' },
       { severity: 'info', title: 'Échappement PSE', description: 'Vérifier l\'état des clapets de l\'échappement sport (corrosion possible).' },
@@ -721,7 +721,7 @@ export const listings: CarListing[] = [
     listingSource: "Standvirtual",
     conformity: 90,
     publishedDaysAgo: 2,
-    options: opts(['pse', 'chrono', 'sportSeats', 'sportChrono']),
+    options: opts(['pse', 'sportSeats', 'sportChrono']),
     vigilancePoints: [
       { severity: 'info', title: 'Toit Targa', description: 'Mécanisme du toit Targa à tester plusieurs fois. Système complexe, entretien coûteux.' },
       { severity: 'info', title: 'Garantie', description: 'Véhicule sous garantie constructeur. Vérifier le transfert international de la garantie.' },
@@ -769,7 +769,7 @@ export const listings: CarListing[] = [
     listingSource: "AutoScout24",
     conformity: 78,
     publishedDaysAgo: 8,
-    options: opts(['pse', 'chrono', 'sportSeats']),
+    options: opts(['pse', 'sportSeats']),
     vigilancePoints: [
       { severity: 'warning', title: 'Historique d\'entretien', description: 'Vendeur particulier — demander l\'intégralité du carnet d\'entretien et des factures.' },
       { severity: 'warning', title: 'Embrayage', description: '67 000 km en boîte manuelle — embrayage potentiellement en fin de vie. Budget ~1 500 €.' },
