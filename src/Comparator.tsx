@@ -1,5 +1,5 @@
-import { X, Check, Share2, Zap, Volume2, Timer, Armchair, ShieldCheck, Gauge, Star, Car as CarIcon } from 'lucide-react';
-import type { CarListing } from './data';
+import { X, Check, Share2, Zap, Volume2, Timer, Armchair, ShieldCheck, Gauge, Star, Sun, Car as CarIcon } from 'lucide-react';
+import { allOptions, type CarListing } from './data';
 import { type Lang, getT, translateOption, translateOptionLabel } from './i18n';
 
 function formatPrice(price: number, lang: Lang): string {
@@ -32,7 +32,12 @@ const optionIcons: Record<string, typeof Zap> = {
   pts: Star,
   carbonTrim: ShieldCheck,
   fullLeather: Armchair,
+  sportSuspension: Gauge,
+  sunroof: Sun,
 };
+
+const optionCatalogIndex: Record<string, number> = Object.fromEntries(allOptions.map((o, i) => [o.key, i]));
+const optionTier: Record<string, string> = Object.fromEntries(allOptions.map((o) => [o.key, o.tier]));
 
 interface ComparatorProps {
   cars: CarListing[];
@@ -45,7 +50,9 @@ export default function Comparator({ cars, lang, onClose, onRemove }: Comparator
   const t = getT(lang);
   const gridCols = cars.length <= 2 ? 'lg:grid-cols-2' : cars.length === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-4';
 
-  const allOptionKeys = Array.from(new Set(cars.flatMap((c) => c.options.map((o) => o.key))));
+  const allOptionKeys = Array.from(new Set(cars.flatMap((c) => c.options.map((o) => o.key)))).sort(
+    (a, b) => (optionCatalogIndex[a] ?? 999) - (optionCatalogIndex[b] ?? 999)
+  );
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-[#0a0a0a]">
@@ -177,6 +184,9 @@ export default function Comparator({ cars, lang, onClose, onRemove }: Comparator
                             <Icon className="h-3.5 w-3.5" />
                           </div>
                           <span className="text-sm font-light text-white/70">{optLabel}</span>
+                          {optionTier[optKey] === 'high' && (
+                            <span className="rounded-full bg-amber-400/10 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider text-amber-300/80">{t('optionPriority')}</span>
+                          )}
                         </div>
                       </td>
                       {cars.map((car) => {

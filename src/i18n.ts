@@ -6,10 +6,11 @@ const optionLabelsEn: Record<OptionKey, string> = {
   x51: 'X51 Powerkit',
   pse: 'PSE Sport Exhaust',
   chrono: 'Chrono Plus clock',
-  sportSeats: 'Sport seats',
+  sportSeats: 'Adaptive Sport Seats Plus (18-way)',
   sportChrono: 'Sport Chrono Package',
   carbonBrakes: 'PCCB Carbon Brakes',
   pasm: 'PASM Adaptive Suspension',
+  sportSuspension: 'Lowered sport suspension (-20 mm)',
   pdcc: 'PDCC Active Roll Stabilization',
   lsd: 'Limited-slip differential',
   rearSteering: 'Rear-axle steering',
@@ -19,6 +20,7 @@ const optionLabelsEn: Record<OptionKey, string> = {
   pts: 'Special paint / Paint to Sample',
   carbonTrim: 'Carbon trim package (interior/exterior)',
   fullLeather: 'Full leather upholstery',
+  sunroof: 'Sunroof / panoramic roof',
 };
 
 /** Translates a CarOption.key to a localized label; falls back to the given French label. */
@@ -187,6 +189,8 @@ export const translations = {
     fieldSellerPhone: 'Téléphone (optionnel)',
     fieldSellerEmail: 'Email (optionnel)',
     fieldOptions: 'Options valorisantes',
+    optionPriority: 'Prioritaire',
+    pasteTextKeptNote: "Ce texte est conservé (modifiable) comme description de l'annonce : l'IA s'en sert pour repérer les points de vigilance (accident, import, etc.) lors de l'analyse experte.",
     fieldListingUrl: "URL de l'annonce",
     fieldListingSource: 'Site source',
     fieldListingSourcePlaceholder: 'Ex : mobile.de, site du concessionnaire…',
@@ -360,6 +364,8 @@ export const translations = {
     fieldSellerPhone: 'Phone (optional)',
     fieldSellerEmail: 'Email (optional)',
     fieldOptions: 'Value-adding options',
+    optionPriority: 'Priority',
+    pasteTextKeptNote: "This text is kept (editable) as the listing's description: the AI uses it to spot vigilance points (accident, import, etc.) during expert analysis.",
     fieldListingUrl: 'Listing URL',
     fieldListingSource: 'Source site',
     fieldListingSourcePlaceholder: 'E.g. mobile.de, dealer website…',

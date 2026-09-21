@@ -32,6 +32,7 @@ interface ListingRow {
   price_history: CarListing['priceHistory'];
   value_analysis: CarListing['valueAnalysis'];
   notes: string | null;
+  seller_description: string | null;
 }
 
 function fromRow(row: ListingRow): CarListing {
@@ -65,6 +66,7 @@ function fromRow(row: ListingRow): CarListing {
     priceHistory: row.price_history,
     valueAnalysis: row.value_analysis,
     notes: row.notes,
+    sellerDescription: row.seller_description,
   };
 }
 
@@ -117,6 +119,7 @@ export interface ListingInput {
   listingSource?: string | null;
   notes?: string | null;
   options?: CarListing['options'];
+  sellerDescription?: string | null;
 }
 
 function toRowPatch(input: ListingInput): Record<string, unknown> {
@@ -143,6 +146,7 @@ function toRowPatch(input: ListingInput): Record<string, unknown> {
   if ('listingSource' in input) patch.listing_source = input.listingSource;
   if ('notes' in input) patch.notes = input.notes;
   if ('options' in input) patch.options = input.options;
+  if ('sellerDescription' in input) patch.seller_description = input.sellerDescription;
   return patch;
 }
 

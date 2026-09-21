@@ -137,10 +137,17 @@ const extractionTool = {
           type: 'string',
           enum: [
             'x51', 'pse', 'chrono', 'sportSeats', 'sportChrono', 'carbonBrakes',
-            'pasm', 'pdcc', 'lsd', 'rearSteering', 'matrixLed', 'bose', 'axleLift',
-            'pts', 'carbonTrim', 'fullLeather',
+            'pasm', 'sportSuspension', 'pdcc', 'lsd', 'rearSteering', 'matrixLed',
+            'bose', 'axleLift', 'pts', 'carbonTrim', 'fullLeather', 'sunroof',
           ],
         },
+      },
+      sellerDescriptionExcerpt: {
+        type: 'string',
+        description:
+          "Verbatim or near-verbatim excerpt (up to ~1500 characters) of the seller's own free-text " +
+          'description of the car — condition, history, ownership claims, equipment. Keep the original ' +
+          "language. Never summarize or add anything the seller didn't say; omit if there's no free text.",
       },
     },
     required: [],
@@ -158,7 +165,9 @@ const OPTIONS_HINT =
   'rearSteering=rear-axle steering/essieu arrière directeur/Hinterachslenkung; ' +
   'matrixLed=Matrix LED headlights/PDLS+/phares LED Matrix; bose=Bose/Burmester/premium sound system; ' +
   'axleLift=front axle lift/levage essieu avant/Liftsystem; pts=Paint to Sample/peinture spéciale; ' +
-  'carbonTrim=carbon trim package/pack carbone; fullLeather=full leather/sellerie cuir intégrale.';
+  'carbonTrim=carbon trim package/pack carbone; fullLeather=full leather/sellerie cuir intégrale; ' +
+  'sportSuspension=lowered sport suspension -20mm (static, distinct from adaptive PASM)/suspension sport abaissée; ' +
+  'sunroof=sunroof/panoramic roof/toit ouvrant/toit panoramique/Schiebedach.';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

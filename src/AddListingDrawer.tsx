@@ -115,7 +115,8 @@ function ListingForm({
     new Set(editingListing?.options.filter((o) => o.present).map((o) => o.key) ?? [])
   );
   const [optionsTouched, setOptionsTouched] = useState(false);
-  const [pasteText, setPasteText] = useState('');
+  const [pasteText, setPasteText] = useState(editingListing?.sellerDescription ?? '');
+  const [pasteTextTouched, setPasteTextTouched] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -171,6 +172,9 @@ function ListingForm({
       });
       if (!optionsTouched && result.options?.length) {
         setSelectedOptions((prev) => new Set([...prev, ...result.options!.filter(isOptionKey)]));
+      }
+      if (!pasteTextTouched && !pasteText.trim() && result.sellerDescriptionExcerpt) {
+        setPasteText(result.sellerDescriptionExcerpt);
       }
       if (result.urlBlockedReason) {
         setExtractionNote(t('extractionUrlBlocked'));
@@ -228,6 +232,7 @@ function ListingForm({
       listingUrl: normalizedUrl,
       listingSource: form.listingSource.trim() || null,
       notes: form.notes.trim() || null,
+      sellerDescription: pasteText.trim() || null,
       options: allOptions
         .filter((o) => selectedOptions.has(o.key))
         .map((o) => ({ key: o.key, label: o.label, present: true })),
@@ -246,6 +251,7 @@ function ListingForm({
         setSelectedOptions(new Set());
         setOptionsTouched(false);
         setPasteText('');
+        setPasteTextTouched(false);
       }
       setSuccess(true);
     } catch (err) {
@@ -284,10 +290,11 @@ function ListingForm({
               id="alPasteText"
               rows={4}
               value={pasteText}
-              onChange={(e) => setPasteText(e.target.value)}
+              onChange={(e) => { setPasteText(e.target.value); setPasteTextTouched(true); }}
               placeholder={t('fieldPasteTextPlaceholder')}
               className={textInputClass}
             />
+            <p className="mt-1.5 text-[11px] font-light leading-relaxed text-white/30">{t('pasteTextKeptNote')}</p>
           </div>
           <div className="col-span-2">
             <button
@@ -411,7 +418,10 @@ function ListingForm({
                     onChange={() => toggleOption(o.key)}
                     className="h-3.5 w-3.5 shrink-0 rounded border-white/20 bg-transparent accent-amber-400"
                   />
-                  {translateOptionLabel(lang, o.key, o.label)}
+                  <span>
+                    {translateOptionLabel(lang, o.key, o.label)}
+                    {o.tier === 'high' && <span className="ml-1.5 text-[9px] font-medium uppercase tracking-wider text-amber-300/70">★</span>}
+                  </span>
                 </label>
               ))}
             </div>
