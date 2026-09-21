@@ -38,7 +38,7 @@ export default function CarCard({ car, isSelected, onToggleSelect, onClick, lang
       className="group relative cursor-pointer overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.04] to-transparent transition-all duration-300 hover:border-amber-400/30 hover:shadow-2xl"
     >
       {/* Image */}
-      <div className="relative h-48 overflow-hidden">
+      <div className="relative aspect-[4/3] overflow-hidden">
         {car.image ? (
           <img
             src={car.image}

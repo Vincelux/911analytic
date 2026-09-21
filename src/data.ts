@@ -1,4 +1,25 @@
-export type OptionKey = 'x51' | 'pse' | 'chrono' | 'sportSeats' | 'sportChrono' | 'carbonBrakes';
+export type OptionKey =
+  | 'x51'
+  | 'pse'
+  | 'chrono'
+  | 'sportSeats'
+  | 'sportChrono'
+  | 'carbonBrakes'
+  | 'pasm'
+  | 'sportSuspension'
+  | 'pdcc'
+  | 'lsd'
+  | 'rearSteering'
+  | 'matrixLed'
+  | 'bose'
+  | 'axleLift'
+  | 'pts'
+  | 'carbonTrim'
+  | 'fullLeather'
+  | 'sunroof';
+
+/** Rough buying-priority tier: how much this option tends to matter to value/negotiation. */
+export type OptionTier = 'high' | 'notable' | 'appeal';
 
 export interface CarOption {
   key: OptionKey;
@@ -59,6 +80,8 @@ export interface CarListing {
   valueAnalysis: ValueAnalysisData | null;
   /** Free-text note, only used for manually-added listings. */
   notes?: string | null;
+  /** Excerpt of the seller's own ad text (pasted by the user or extracted from the page) — feeds the AI's suspicious-listing checks. Distinct from the user's personal `notes`. */
+  sellerDescription?: string | null;
 }
 
 /** ISO country-code lookup for the countries a listing can be tagged with, used to render flags. */
@@ -142,17 +165,38 @@ export const defaultFilters: FilterState = {
   rating: 'Toutes',
 };
 
-const allOptions: CarOption[] = [
-  { key: 'x51', label: 'X51 Powerkit', present: false },
-  { key: 'pse', label: 'Échappement Sport PSE', present: false },
-  { key: 'chrono', label: 'Chrono Plus', present: false },
-  { key: 'sportSeats', label: 'Sièges Sport', present: false },
-  { key: 'sportChrono', label: 'Pack Sport Chrono', present: false },
-  { key: 'carbonBrakes', label: 'Freins Carbone PCCB', present: false },
+/**
+ * Master option catalog, ordered by buying priority (high tier first) so
+ * every UI that iterates it (checkbox grid, comparator rows) stays
+ * consistently sorted without extra logic. `tier` is catalog metadata only —
+ * it isn't duplicated onto the CarOption[] stored per listing.
+ */
+export const allOptions: (CarOption & { tier: OptionTier })[] = [
+  // High priority: consistently searched-for, hard to retrofit, strong resale/negotiation weight.
+  { key: 'sportChrono', label: 'Pack Sport Chrono', present: false, tier: 'high' },
+  { key: 'pse', label: 'Échappement Sport PSE', present: false, tier: 'high' },
+  { key: 'rearSteering', label: 'Essieu arrière directeur', present: false, tier: 'high' },
+  { key: 'pasm', label: 'Suspension pilotée PASM', present: false, tier: 'high' },
+  { key: 'sportSuspension', label: 'Suspension sport abaissée (-20 mm)', present: false, tier: 'high' },
+  { key: 'axleLift', label: "Levage de l'essieu avant", present: false, tier: 'high' },
+  { key: 'carbonBrakes', label: 'Freins Carbone PCCB', present: false, tier: 'high' },
+  { key: 'lsd', label: 'Différentiel à glissement limité', present: false, tier: 'high' },
+  { key: 'pdcc', label: 'Stabilisation active PDCC', present: false, tier: 'high' },
+  // Notable: genuinely appealing, but desirability varies more by buyer.
+  { key: 'sportSeats', label: 'Sièges Sport Plus adaptatifs (18 pos.)', present: false, tier: 'notable' },
+  { key: 'fullLeather', label: 'Sellerie cuir intégrale', present: false, tier: 'notable' },
+  { key: 'bose', label: 'Système audio haut de gamme (Bose/Burmester)', present: false, tier: 'notable' },
+  { key: 'sunroof', label: 'Toit ouvrant / panoramique', present: false, tier: 'notable' },
+  { key: 'matrixLed', label: 'Phares LED Matrix (PDLS+)', present: false, tier: 'notable' },
+  { key: 'pts', label: 'Peinture spéciale / Paint to Sample', present: false, tier: 'notable' },
+  { key: 'x51', label: 'X51 Powerkit', present: false, tier: 'notable' },
+  // Cosmetic / minor.
+  { key: 'carbonTrim', label: 'Pack carbone (intérieur/extérieur)', present: false, tier: 'appeal' },
+  { key: 'chrono', label: 'Horloge Chrono Plus', present: false, tier: 'appeal' },
 ];
 
 function opts(present: OptionKey[]): CarOption[] {
-  return allOptions.map((o) => ({ ...o, present: present.includes(o.key) }));
+  return allOptions.map((o) => ({ key: o.key, label: o.label, present: present.includes(o.key) }));
 }
 
 export const listings: CarListing[] = [

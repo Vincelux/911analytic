@@ -17,6 +17,50 @@ const ANTHROPIC_API_KEY = requireEnv('ANTHROPIC_API_KEY');
 const EXTRACTION_MODEL = process.env.SCRAPE_MODEL || 'claude-haiku-4-5';
 const USER_AGENT = '911AnalyticsPersonalBot/1.0 (+personal, non-commercial use)';
 
+// Kept in sync with src/data.ts's allOptions — this script has no access to
+// the frontend's module graph, so the option catalog is duplicated here.
+const OPTION_LABELS = {
+  x51: 'X51 Powerkit',
+  pse: 'Échappement Sport PSE',
+  chrono: 'Chrono Plus',
+  sportSeats: 'Sièges Sport Plus adaptatifs (18 pos.)',
+  sportChrono: 'Pack Sport Chrono',
+  carbonBrakes: 'Freins Carbone PCCB',
+  pasm: 'Suspension pilotée PASM',
+  sportSuspension: 'Suspension sport abaissée (-20 mm)',
+  pdcc: 'Stabilisation active PDCC',
+  lsd: 'Différentiel à glissement limité',
+  rearSteering: 'Essieu arrière directeur',
+  matrixLed: 'Phares LED Matrix (PDLS+)',
+  bose: 'Système audio haut de gamme',
+  axleLift: "Levage de l'essieu avant",
+  pts: 'Peinture spéciale / Paint to Sample',
+  carbonTrim: 'Pack carbone (intérieur/extérieur)',
+  fullLeather: 'Sellerie cuir intégrale',
+  sunroof: 'Toit ouvrant / panoramique',
+};
+// Buying-priority tier, kept in sync with src/data.ts's allOptions — used to
+// weight the negotiation/value-factor prompt below.
+const OPTION_TIERS = {
+  sportChrono: 'high', pse: 'high', rearSteering: 'high', pasm: 'high',
+  sportSuspension: 'high', axleLift: 'high', carbonBrakes: 'high', lsd: 'high', pdcc: 'high',
+  sportSeats: 'notable', fullLeather: 'notable', bose: 'notable', sunroof: 'notable',
+  matrixLed: 'notable', pts: 'notable', x51: 'notable',
+  carbonTrim: 'appeal', chrono: 'appeal',
+};
+const OPTIONS_HINT =
+  'x51=X51 Powerkit (964 power upgrade); pse=Porsche Sport Exhaust/échappement sport; ' +
+  'chrono=Chrono Plus dashboard clock; sportSeats=sport seats/sièges sport; ' +
+  'sportChrono=Sport Chrono Package/Pack Sport Chrono; carbonBrakes=PCCB/ceramic brakes/freins carbone; ' +
+  'pasm=PASM/adaptive suspension/suspension pilotée; pdcc=PDCC/active roll stabilization; ' +
+  'lsd=limited-slip differential/différentiel autobloquant/Sperrdifferential; ' +
+  'rearSteering=rear-axle steering/essieu arrière directeur/Hinterachslenkung; ' +
+  'matrixLed=Matrix LED headlights/PDLS+/phares LED Matrix; bose=Bose/Burmester/premium sound system; ' +
+  'axleLift=front axle lift/levage essieu avant/Liftsystem; pts=Paint to Sample/peinture spéciale; ' +
+  'carbonTrim=carbon trim package/pack carbone; fullLeather=full leather/sellerie cuir intégrale; ' +
+  'sportSuspension=lowered sport suspension -20mm (static, distinct from adaptive PASM)/suspension sport abaissée; ' +
+  'sunroof=sunroof/panoramic roof/toit ouvrant/toit panoramique/Schiebedach.';
+
 function requireEnv(name) {
   const value = process.env[name];
   if (!value) throw new Error(`Missing required env var: ${name}`);
@@ -165,6 +209,22 @@ const extractionTool = {
             sellerPhone: { type: 'string' },
             sellerEmail: { type: 'string' },
             listingUrl: { type: 'string', description: 'Absolute URL to this specific ad' },
+            options: {
+              type: 'array',
+              description:
+                'Value-adding factory options explicitly mentioned for this listing. Only include a code if clearly stated as present — never guess.',
+              items: {
+                type: 'string',
+                enum: Object.keys(OPTION_LABELS),
+              },
+            },
+            sellerDescriptionExcerpt: {
+              type: 'string',
+              description:
+                "Verbatim or near-verbatim excerpt (up to ~1500 characters) of this listing's own free-text " +
+                "description — condition, history, ownership claims. Keep the original language. Never invent " +
+                "anything the seller didn't say; omit if there's no free text for this listing.",
+            },
           },
           required: [
             'model', 'generation', 'price', 'mileage', 'year', 'power', 'fuelType',
@@ -191,7 +251,8 @@ async function extractListingsFromPage(pageUrl, html) {
           `This is the HTML of a car listings page. Find every Porsche 911 for sale on it ` +
           `and report it via the report_listings tool. Resolve any relative links to absolute ` +
           `URLs using the page URL above. Skip anything that isn't a 911. If a field isn't visible ` +
-          `on the page, omit it rather than guessing.\n\n${html}`,
+          `on the page, omit it rather than guessing. For the options field, use this lexicon: ` +
+          `${OPTIONS_HINT}\n\n${html}`,
       },
     ],
   });
@@ -237,7 +298,40 @@ const analysisTool = {
   },
 };
 
+// Feeds the option priority tiers into the analysis prompt so the AI weighs
+// missing/present options consistently with the app's own buying-priority
+// catalog rather than an unweighted list.
+const OPTIONS_PRIORITY_GUIDE =
+  'When weighing options for value/negotiation, use this buying-priority tiering (high > notable > appeal): ' +
+  Object.entries(OPTION_TIERS)
+    .map(([key, tier]) => `${OPTION_LABELS[key] ?? key} (${tier})`)
+    .join(', ') +
+  '. A missing "high" tier option is a real negotiation lever (state it plainly, e.g. "no Sport Chrono — ' +
+  'hard to retrofit, use it to negotiate"); present "high" tier options are genuine value/retention factors. ' +
+  '"notable" and "appeal" options matter less and vary more by buyer taste — mention them only if relevant.';
+
+// Grounded in specialist Porsche buying-guide consensus (Rennlist, Total911,
+// stuttcars, elferspot) — categories worth scanning the seller's own text
+// for, without ever asserting something as fact the text doesn't support.
+const SUSPICIOUS_SIGNALS_GUIDE =
+  'Separately, scan the seller description (if provided) and the structured fields for language suggesting ' +
+  'any of these known risk categories, and raise a vigilance point (severity "warning" or "critical" depending ' +
+  'on how explicit the signal is) when you find one — phrase it as "à vérifier"/"signal détecté", never as a ' +
+  'confirmed fact you cannot know: ' +
+  '(1) Grey/non-EU import — US-spec markers (mph speedometer, federal bumpers, "US import", title in another ' +
+  'country) mean the buyer may inherit unpaid import VAT/customs duties and compliance (COC certificate) issues ' +
+  'if the car was never properly registered in the EU; (2) Accident/damage history — words like accidenté, ' +
+  'sinistré, choc, repeint, Unfall, "light damage", even when downplayed; (3) Title/registration irregularities — ' +
+  'salvage title, "véhicule gravement endommagé" (VGE), Schadenwagen, carte grise non conforme, "non dédouané"; ' +
+  '(4) Odometer/service-history inconsistency — mileage that looks low for the age with no service record ' +
+  'mentioned, missing books/history, "kilométrage non garanti". Do not raise a point for a category with no ' +
+  'textual support — silence on a topic is not itself a red flag.';
+
 async function analyzeListing(listing) {
+  const presentOptions = (listing.options ?? [])
+    .filter((o) => o.present)
+    .map((o) => o.label);
+
   const response = await anthropic.messages.create({
     model: EXTRACTION_MODEL,
     max_tokens: 2048,
@@ -247,8 +341,10 @@ async function analyzeListing(listing) {
       'You are a Porsche 911 buying expert writing for a French-speaking used-car search tool. ' +
       'Write every text field in French. Base your analysis on general, well-known facts about ' +
       "this generation/model's typical issues and the collector market — never invent specific " +
-      "facts about this exact car that you can't know (service history, accident record, etc). " +
-      'This is a general opinion the buyer should independently verify, not a verified inspection.',
+      "facts about this exact car that you can't know (service history, accident record, etc), " +
+      'except where explicitly grounded in the seller description text as described below. ' +
+      'This is a general opinion the buyer should independently verify, not a verified inspection.\n\n' +
+      `${OPTIONS_PRIORITY_GUIDE}\n\n${SUSPICIOUS_SIGNALS_GUIDE}`,
     messages: [
       {
         role: 'user',
@@ -264,6 +360,8 @@ async function analyzeListing(listing) {
               price: listing.price,
               transmission: listing.transmission,
               fuelType: listing.fuel_type,
+              presentOptions,
+              sellerDescription: listing.seller_description ?? null,
             },
             null,
             2
@@ -329,6 +427,10 @@ async function scrapeCustomSources() {
         listing_url: item.listingUrl,
         listing_source: new URL(source.url).hostname.replace(/^www\./, ''),
         conformity: null,
+        options: (item.options ?? [])
+          .filter((key) => key in OPTION_LABELS)
+          .map((key) => ({ key, label: OPTION_LABELS[key], present: true })),
+        seller_description: item.sellerDescriptionExcerpt ?? null,
         last_seen_at: new Date().toISOString(),
       };
 

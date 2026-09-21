@@ -5,9 +5,11 @@ import {
   fuelTypes,
   transmissions,
   countryFlagCodes,
+  allOptions,
   type CarListing,
+  type OptionKey,
 } from './data';
-import { type Lang, getT } from './i18n';
+import { type Lang, getT, translateOptionLabel } from './i18n';
 import { useAuth } from './lib/auth';
 import { insertListing, updateListing, type ListingInput } from './listingsRepository';
 import { extractListing, type ExtractionResult } from './lib/extraction';
@@ -86,6 +88,11 @@ function matchOption(value: string | undefined, options: readonly string[]): str
   return options.find((o) => o.toLowerCase() === value.toLowerCase()) ?? '';
 }
 
+const optionKeys = allOptions.map((o) => o.key);
+function isOptionKey(value: string): value is OptionKey {
+  return (optionKeys as string[]).includes(value);
+}
+
 function ListingForm({
   lang,
   onAdded,
@@ -104,7 +111,12 @@ function ListingForm({
   const isEditing = !!editingListing;
   const [form, setForm] = useState<FormState>(editingListing ? formFromListing(editingListing) : emptyForm);
   const [touched, setTouched] = useState<Set<keyof FormState>>(new Set());
-  const [pasteText, setPasteText] = useState('');
+  const [selectedOptions, setSelectedOptions] = useState<Set<OptionKey>>(
+    new Set(editingListing?.options.filter((o) => o.present).map((o) => o.key) ?? [])
+  );
+  const [optionsTouched, setOptionsTouched] = useState(false);
+  const [pasteText, setPasteText] = useState(editingListing?.sellerDescription ?? '');
+  const [pasteTextTouched, setPasteTextTouched] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -114,6 +126,16 @@ function ListingForm({
   const update = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
     setTouched((prev) => new Set(prev).add(key));
+  };
+
+  const toggleOption = (key: OptionKey) => {
+    setOptionsTouched(true);
+    setSelectedOptions((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
   };
 
   const handleExtract = async () => {
@@ -148,6 +170,12 @@ function ListingForm({
         maybeSet('listingSource', result.listingSource);
         return next;
       });
+      if (!optionsTouched && result.options?.length) {
+        setSelectedOptions((prev) => new Set([...prev, ...result.options!.filter(isOptionKey)]));
+      }
+      if (!pasteTextTouched && !pasteText.trim() && result.sellerDescriptionExcerpt) {
+        setPasteText(result.sellerDescriptionExcerpt);
+      }
       if (result.urlBlockedReason) {
         setExtractionNote(t('extractionUrlBlocked'));
       } else if (result.urlFetched === false && !pasteText.trim()) {
@@ -204,6 +232,10 @@ function ListingForm({
       listingUrl: normalizedUrl,
       listingSource: form.listingSource.trim() || null,
       notes: form.notes.trim() || null,
+      sellerDescription: pasteText.trim() || null,
+      options: allOptions
+        .filter((o) => selectedOptions.has(o.key))
+        .map((o) => ({ key: o.key, label: o.label, present: true })),
     };
 
     setSubmitting(true);
@@ -216,7 +248,10 @@ function ListingForm({
         onAdded(listing);
         setForm(emptyForm);
         setTouched(new Set());
+        setSelectedOptions(new Set());
+        setOptionsTouched(false);
         setPasteText('');
+        setPasteTextTouched(false);
       }
       setSuccess(true);
     } catch (err) {
@@ -255,10 +290,11 @@ function ListingForm({
               id="alPasteText"
               rows={4}
               value={pasteText}
-              onChange={(e) => setPasteText(e.target.value)}
+              onChange={(e) => { setPasteText(e.target.value); setPasteTextTouched(true); }}
               placeholder={t('fieldPasteTextPlaceholder')}
               className={textInputClass}
             />
+            <p className="mt-1.5 text-[11px] font-light leading-relaxed text-white/30">{t('pasteTextKeptNote')}</p>
           </div>
           <div className="col-span-2">
             <button
@@ -370,6 +406,25 @@ function ListingForm({
           <div>
             <label htmlFor="alSellerEmail" className={labelClass}>{t('fieldSellerEmail')}</label>
             <input id="alSellerEmail" type="email" value={form.sellerEmail} onChange={(e) => update('sellerEmail', e.target.value)} className={textInputClass} />
+          </div>
+          <div className="col-span-2">
+            <span className={labelClass}>{t('fieldOptions')}</span>
+            <div className="grid grid-cols-2 gap-x-3 gap-y-2 rounded-lg border border-white/10 bg-white/[0.02] p-3">
+              {allOptions.map((o) => (
+                <label key={o.key} className="flex cursor-pointer items-center gap-2 text-xs font-light text-white/60 hover:text-white/80">
+                  <input
+                    type="checkbox"
+                    checked={selectedOptions.has(o.key)}
+                    onChange={() => toggleOption(o.key)}
+                    className="h-3.5 w-3.5 shrink-0 rounded border-white/20 bg-transparent accent-amber-400"
+                  />
+                  <span>
+                    {translateOptionLabel(lang, o.key, o.label)}
+                    {o.tier === 'high' && <span className="ml-1.5 text-[9px] font-medium uppercase tracking-wider text-amber-300/70">★</span>}
+                  </span>
+                </label>
+              ))}
+            </div>
           </div>
           <div className="col-span-2">
             <label htmlFor="alListingSource" className={labelClass}>{t('fieldListingSource')}</label>
