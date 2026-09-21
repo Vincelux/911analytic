@@ -1,7 +1,9 @@
-import { X, Check, Share2, Zap, Volume2, Timer, Armchair, ShieldCheck, Gauge, Star, Sun, Smartphone, TrendingDown, Car as CarIcon } from 'lucide-react';
+import { useState } from 'react';
+import { X, Check, Share2, Zap, Volume2, Timer, Armchair, ShieldCheck, Gauge, Star, Sun, Smartphone, TrendingUp, TrendingDown, Minus, Car as CarIcon } from 'lucide-react';
 import { allOptions, type CarListing } from './data';
 import { type Lang, getT, translateOption, translateOptionLabel } from './i18n';
-import { getIndicativeValue } from './analysis';
+import { getIndicativeValue, getValueProjection } from './analysis';
+import { VigilanceCard } from './CarDetail';
 
 function formatPrice(price: number, lang: Lang): string {
   return new Intl.NumberFormat(lang === 'fr' ? 'fr-FR' : 'en-GB').format(price) + ' €';
@@ -50,6 +52,8 @@ interface ComparatorProps {
 export default function Comparator({ cars, lang, onClose, onRemove }: ComparatorProps) {
   const t = getT(lang);
   const gridCols = cars.length <= 2 ? 'lg:grid-cols-2' : cars.length === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-4';
+  const [projectionYears, setProjectionYears] = useState(3);
+  const [projectionKmPerYear, setProjectionKmPerYear] = useState(10000);
 
   const allOptionKeys = Array.from(new Set(cars.flatMap((c) => c.options.map((o) => o.key)))).sort(
     (a, b) => (optionCatalogIndex[a] ?? 999) - (optionCatalogIndex[b] ?? 999)
@@ -246,6 +250,105 @@ export default function Comparator({ cars, lang, onClose, onRemove }: Comparator
                 </div>
               );
             })}
+          </div>
+        </div>
+
+        {/* Future value simulator — shared holding-period/mileage inputs applied to every compared car */}
+        <div className="mt-8">
+          <h2 className="mb-4 text-xs uppercase tracking-[0.3em] text-white/30">{t('valueProjectionTitle')}</h2>
+          <div className="mb-4 grid grid-cols-2 gap-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4 sm:max-w-md">
+            <div>
+              <label htmlFor="cmpProjectionYears" className="mb-1.5 block text-[11px] font-light uppercase tracking-wider text-white/30">{t('projectionYears')}</label>
+              <input
+                id="cmpProjectionYears"
+                type="number"
+                min={0}
+                max={30}
+                value={projectionYears}
+                onChange={(e) => { const n = Number(e.target.value); setProjectionYears(Number.isFinite(n) ? Math.max(0, n) : 0); }}
+                className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm font-light text-white outline-none transition-colors focus:border-amber-400/40"
+              />
+            </div>
+            <div>
+              <label htmlFor="cmpProjectionKm" className="mb-1.5 block text-[11px] font-light uppercase tracking-wider text-white/30">{t('projectionKmPerYear')}</label>
+              <input
+                id="cmpProjectionKm"
+                type="number"
+                min={0}
+                step={1000}
+                value={projectionKmPerYear}
+                onChange={(e) => { const n = Number(e.target.value); setProjectionKmPerYear(Number.isFinite(n) ? Math.max(0, n) : 0); }}
+                className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm font-light text-white outline-none transition-colors focus:border-amber-400/40"
+              />
+            </div>
+          </div>
+          <div className={`grid gap-4 ${gridCols}`}>
+            {cars.map((car) => {
+              const projection = getValueProjection(car, { years: projectionYears, kmPerYear: projectionKmPerYear });
+              return (
+                <div key={car.id} className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
+                  <div className="mb-3 text-xs font-light text-white/50">{[car.generation, car.phase].filter(Boolean).join(' ')}</div>
+                  {projection ? (
+                    <>
+                      <div className="text-[10px] uppercase tracking-wider text-white/30">{t('projectedValueLabel')}</div>
+                      <div className="mt-1 flex items-center gap-2">
+                        <span className="text-xl font-light text-white">{formatPrice(projection.projectedValue, lang)}</span>
+                        <span className={`flex items-center gap-1 text-xs font-light ${projection.deltaAbsolute < 0 ? 'text-red-300' : projection.deltaAbsolute > 0 ? 'text-emerald-300' : 'text-white/40'}`}>
+                          {projection.deltaAbsolute < 0 ? <TrendingDown className="h-3.5 w-3.5" /> : projection.deltaAbsolute > 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <Minus className="h-3.5 w-3.5" />}
+                          {projection.deltaPct > 0 ? '+' : ''}{projection.deltaPct}%
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-xs font-light text-white/30">{t('projectionUnavailable')}</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <p className="mt-3 text-[11px] font-light leading-relaxed text-white/25">{t('projectionDisclaimer')}</p>
+        </div>
+
+        {/* Expert opinion (vigilance points) comparison */}
+        <div className="mt-8">
+          <h2 className="mb-4 text-xs uppercase tracking-[0.3em] text-white/30">{t('expertOpinion')}</h2>
+          <div className={`grid gap-4 ${gridCols}`}>
+            {cars.map((car) => (
+              <div key={car.id} className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
+                <div className="mb-3 text-xs font-light text-white/50">{[car.generation, car.phase].filter(Boolean).join(' ')}</div>
+                {car.vigilancePoints.length === 0 ? (
+                  <p className="text-xs font-light leading-relaxed text-white/30">{t('vigilanceNotAnalyzedYet')}</p>
+                ) : (
+                  <div className="space-y-2">{car.vigilancePoints.map((p, i) => <VigilanceCard key={i} point={p} />)}</div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Negotiation arguments comparison */}
+        <div className="mt-8">
+          <h2 className="mb-4 text-xs uppercase tracking-[0.3em] text-white/30">
+            {t('negotiationArgsTitle')}
+          </h2>
+          <div className={`grid gap-4 ${gridCols}`}>
+            {cars.map((car) => (
+              <div key={car.id} className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
+                <div className="mb-3 text-xs font-light text-white/50">{[car.generation, car.phase].filter(Boolean).join(' ')}</div>
+                {car.negotiationArguments.length === 0 ? (
+                  <p className="text-xs font-light leading-relaxed text-white/30">{t('negotiationArgsNone')}</p>
+                ) : (
+                  <div className="space-y-2">
+                    {car.negotiationArguments.map((arg, i) => (
+                      <div key={i} className="flex items-start gap-2.5 rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2.5">
+                        <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-400/10 text-[11px] font-medium text-amber-300">{i + 1}</div>
+                        <p className="text-xs font-light leading-relaxed text-white/60">{arg}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </div>
 
