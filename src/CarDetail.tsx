@@ -107,7 +107,7 @@ function TrendBadge({ trend, label }: { trend: ValueAnalysisData['trend']; label
   );
 }
 
-function VigilanceCard({ point }: { point: VigilancePoint }) {
+export function VigilanceCard({ point }: { point: VigilancePoint }) {
   const config = {
     critical: { icon: AlertTriangle, color: 'text-red-300', bg: 'bg-red-400/10', border: 'border-red-400/20' },
     warning: { icon: AlertTriangle, color: 'text-amber-300', bg: 'bg-amber-400/10', border: 'border-amber-400/20' },
@@ -327,6 +327,9 @@ export default function CarDetail({ car, lang, onClose, onEdit }: CarDetailProps
 
           <div>
             <h3 className="mb-3 text-xs uppercase tracking-[0.15em] text-white/30">{t('detectedOptions')}</h3>
+            {car.options.length === 0 && (
+              <p className="text-xs font-light leading-relaxed text-white/30">{t('optionsNoneDetected')}</p>
+            )}
             <div className="space-y-2">
               {car.options.map((opt) => {
                 const Icon = optionIcons[opt.key] || Zap;
@@ -378,7 +381,11 @@ export default function CarDetail({ car, lang, onClose, onEdit }: CarDetailProps
 
           <div>
             <h3 className="mb-3 text-xs uppercase tracking-[0.15em] text-white/30">{t('expertOpinion')}</h3>
-            <div className="space-y-2.5">{car.vigilancePoints.map((p, i) => <VigilanceCard key={i} point={p} />)}</div>
+            {car.vigilancePoints.length === 0 ? (
+              <p className="text-xs font-light leading-relaxed text-white/30">{t('vigilanceNotAnalyzedYet')}</p>
+            ) : (
+              <div className="space-y-2.5">{car.vigilancePoints.map((p, i) => <VigilanceCard key={i} point={p} />)}</div>
+            )}
 
             {realisticPrice != null && car.price != null && discount != null && discountPct != null && (
               <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.02] p-5">
@@ -438,7 +445,16 @@ export default function CarDetail({ car, lang, onClose, onEdit }: CarDetailProps
               <p className="mt-3 text-[11px] font-light leading-relaxed text-white/25">{t('projectionDisclaimer')}</p>
             </div>
 
-            <div className="mt-4"><p className="mb-3 text-xs uppercase tracking-[0.15em] text-white/30">{t('negotiationArgs')}</p><div className="space-y-2">{car.negotiationArguments.map((arg, i) => <div key={i} className="flex items-start gap-3 rounded-lg border border-white/5 bg-white/[0.02] px-4 py-3"><div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-400/10 text-xs font-medium text-amber-300">{i + 1}</div><p className="text-sm font-light leading-relaxed text-white/60">{arg}</p></div>)}</div></div>
+            <div className="mt-4">
+              <p className="mb-3 text-xs uppercase tracking-[0.15em] text-white/30">
+                {t('negotiationArgsTitle')}{car.negotiationArguments.length > 0 ? ` (${car.negotiationArguments.length})` : ''}
+              </p>
+              {car.negotiationArguments.length === 0 ? (
+                <p className="text-xs font-light leading-relaxed text-white/30">{t('negotiationArgsNone')}</p>
+              ) : (
+                <div className="space-y-2">{car.negotiationArguments.map((arg, i) => <div key={i} className="flex items-start gap-3 rounded-lg border border-white/5 bg-white/[0.02] px-4 py-3"><div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-400/10 text-xs font-medium text-amber-300">{i + 1}</div><p className="text-sm font-light leading-relaxed text-white/60">{arg}</p></div>)}</div>
+              )}
+            </div>
           </div>
 
           <button onClick={handleShare} className="group relative w-full overflow-hidden rounded-xl bg-gradient-to-r from-amber-300 to-amber-400 px-8 py-4 text-sm font-medium tracking-wide text-[#0a0a0a] shadow-lg shadow-amber-500/10 transition-all hover:shadow-amber-500/20 hover:brightness-110 active:scale-[0.98]">
