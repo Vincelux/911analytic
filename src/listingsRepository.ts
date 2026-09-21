@@ -98,6 +98,7 @@ export interface ListingInput {
   model?: string | null;
   generation?: string | null;
   phase?: string | null;
+  image?: string | null;
   price?: number | null;
   mileage?: number | null;
   year?: number | null;
@@ -122,6 +123,7 @@ function toRowPatch(input: ListingInput): Record<string, unknown> {
   if ('model' in input) patch.model = input.model;
   if ('generation' in input) patch.generation = input.generation;
   if ('phase' in input) patch.phase = input.phase;
+  if ('image' in input) patch.image = input.image;
   if ('price' in input) patch.price = input.price;
   if ('mileage' in input) patch.mileage = input.mileage;
   if ('year' in input) patch.year = input.year;

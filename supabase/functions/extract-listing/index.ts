@@ -107,6 +107,11 @@ const extractionTool = {
       model: { type: 'string' },
       generation: { type: 'string', description: 'One of: Classique, G-Modell, 964, 993, 996, 997, 991, 992' },
       phase: { type: 'string' },
+      imageUrl: {
+        type: 'string',
+        description:
+          'Direct URL of the main listing photo, if one is visible in the page (e.g. an og:image meta tag or the first gallery image). Must be an absolute, publicly reachable image URL.',
+      },
       price: { type: 'number' },
       mileage: { type: 'number' },
       year: { type: 'number' },
