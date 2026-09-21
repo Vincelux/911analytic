@@ -44,6 +44,10 @@ export interface ValueAnalysisData {
   trend: 'up' | 'stable' | 'down';
   trendLabel: string;
   factors: string[];
+  /** AI-estimated fair price, reasoned from the listing's own details rather than the client-side formula. Optional: absent on analyses generated before this field existed. */
+  estimatedFairPrice?: number | null;
+  /** Short explanation of how the AI arrived at estimatedFairPrice. */
+  priceRationale?: string;
 }
 
 export interface CarListing {

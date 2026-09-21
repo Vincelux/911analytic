@@ -291,8 +291,10 @@ const analysisTool = {
           trend: { type: 'string', enum: ['up', 'stable', 'down'] },
           trendLabel: { type: 'string' },
           factors: { type: 'array', items: { type: 'string' } },
+          estimatedFairPrice: { type: 'number', description: 'AI-reasoned fair price in EUR, see instructions' },
+          priceRationale: { type: 'string' },
         },
-        required: ['retentionScore', 'rarityLabel', 'trend', 'trendLabel', 'factors'],
+        required: ['retentionScore', 'rarityLabel', 'trend', 'trendLabel', 'factors', 'priceRationale'],
       },
     },
     required: ['vigilancePoints', 'negotiationArguments', 'valueAnalysis'],
@@ -328,6 +330,14 @@ const SUSPICIOUS_SIGNALS_GUIDE =
   'mentioned, missing books/history, "kilométrage non garanti". Do not raise a point for a category with no ' +
   'textual support — silence on a topic is not itself a red flag.';
 
+const PRICE_ESTIMATE_GUIDE =
+  'For estimatedFairPrice: reason about a realistic fair market price for this exact car given its year, ' +
+  'mileage, generation/phase, present options and general knowledge of the current collector/used market for ' +
+  'this model — not a mechanical formula. If the listed price seems fair, estimatedFairPrice can be close to ' +
+  'or equal to it. Explain your reasoning in priceRationale (2-3 sentences, French) — cite the specific factors ' +
+  'that moved your estimate up or down (rarity, options, condition signals, market trend for this generation). ' +
+  'If the price field is missing, omit estimatedFairPrice and say so in priceRationale.';
+
 async function analyzeListing(listing) {
   const presentOptions = (listing.options ?? [])
     .filter((o) => o.present)
@@ -345,7 +355,7 @@ async function analyzeListing(listing) {
       "facts about this exact car that you can't know (service history, accident record, etc), " +
       'except where explicitly grounded in the seller description text as described below. ' +
       'This is a general opinion the buyer should independently verify, not a verified inspection.\n\n' +
-      `${OPTIONS_PRIORITY_GUIDE}\n\n${SUSPICIOUS_SIGNALS_GUIDE}`,
+      `${OPTIONS_PRIORITY_GUIDE}\n\n${SUSPICIOUS_SIGNALS_GUIDE}\n\n${PRICE_ESTIMATE_GUIDE}`,
     messages: [
       {
         role: 'user',
@@ -474,11 +484,26 @@ async function backfillAnalysis() {
   }
 }
 
+// Scraping and analysis are independent concerns — a scraping failure (a
+// source's table query erroring, an unexpected exception outside the
+// per-source try/catch) must never prevent the analysis backfill from
+// running, since that backfill also covers manually-added listings that
+// have nothing to do with scraping.
+let hadFailure = false;
+
 try {
   await scrapeCustomSources();
-  await backfillAnalysis();
-  console.log('\nDone.');
 } catch (err) {
-  console.error('\nJob failed:', err.message);
-  process.exit(1);
+  hadFailure = true;
+  console.error('\nScraping step failed:', err.message);
 }
+
+try {
+  await backfillAnalysis();
+} catch (err) {
+  hadFailure = true;
+  console.error('\nAnalysis step failed:', err.message);
+}
+
+console.log(hadFailure ? '\nDone, with errors — see above.' : '\nDone.');
+if (hadFailure) process.exit(1);

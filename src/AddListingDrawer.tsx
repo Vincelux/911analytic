@@ -13,6 +13,7 @@ import { type Lang, getT, translateOptionLabel } from './i18n';
 import { useAuth } from './lib/auth';
 import { insertListing, updateListing, type ListingInput } from './listingsRepository';
 import { extractListing, type ExtractionResult } from './lib/extraction';
+import { requestListingAnalysis } from './lib/analyzeListing';
 import { normalizeUrl } from './lib/url';
 import { textInputClass, labelClass } from './lib/formStyles';
 import LoginForm from './LoginForm';
@@ -240,11 +241,12 @@ function ListingForm({
 
     setSubmitting(true);
     try {
+      let listing: CarListing;
       if (isEditing && editingListing) {
-        const listing = await updateListing(editingListing.id, patch);
+        listing = await updateListing(editingListing.id, patch);
         onUpdated?.(listing);
       } else {
-        const listing = await insertListing(patch);
+        listing = await insertListing(patch);
         onAdded(listing);
         setForm(emptyForm);
         setTouched(new Set());
@@ -254,6 +256,13 @@ function ListingForm({
         setPasteTextTouched(false);
       }
       setSuccess(true);
+      // Fire-and-forget: refresh the AI analysis in the background so vigilance
+      // points / negotiation arguments / AI price estimate stay current without
+      // needing the manual batch job. A failure here doesn't affect the save —
+      // the listing just keeps showing its previous (or empty) analysis state.
+      requestListingAnalysis(listing.id)
+        .then((analysis) => onUpdated?.({ ...listing, ...analysis }))
+        .catch((err) => console.warn('[911analytics] analyse IA différée échouée:', err));
     } catch (err) {
       setError(err instanceof Error ? err.message : t('addListingGenericError'));
     } finally {

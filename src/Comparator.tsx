@@ -224,7 +224,7 @@ export default function Comparator({ cars, lang, onClose, onRemove }: Comparator
           <h2 className="mb-4 text-xs uppercase tracking-[0.3em] text-white/30">{t('realisticPrice')}</h2>
           <div className={`grid gap-4 ${gridCols}`}>
             {cars.map((car) => {
-              const realisticPrice = getIndicativeValue(car);
+              const realisticPrice = car.valueAnalysis?.estimatedFairPrice ?? getIndicativeValue(car);
               const discount = realisticPrice != null && car.price != null ? car.price - realisticPrice : null;
               const discountPct = discount != null && car.price ? Math.round((discount / car.price) * 100) : null;
               return (
@@ -242,7 +242,9 @@ export default function Comparator({ cars, lang, onClose, onRemove }: Comparator
                           {t('negotiationMargin')}: <span className="font-medium">{discount >= 0 ? '-' : '+'}{formatPrice(Math.abs(discount), lang)}</span> ({Math.abs(discountPct)}%)
                         </p>
                       )}
-                      <p className="mt-2 text-[10px] font-light leading-relaxed text-white/25">{t('realisticPriceExplanation')}</p>
+                      <p className="mt-2 text-[10px] font-light leading-relaxed text-white/25">
+                        {car.valueAnalysis?.priceRationale || t('realisticPriceExplanation')}
+                      </p>
                     </>
                   ) : (
                     <p className="text-xs font-light text-white/30">{t('projectionUnavailable')}</p>

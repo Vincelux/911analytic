@@ -37,10 +37,13 @@ import {
   Pencil,
   Sun,
   Smartphone,
+  RefreshCw,
 } from 'lucide-react';
 import type { CarListing, PricePoint, ValueAnalysisData, VigilancePoint } from './data';
 import { type Lang, getT, translateOptionLabel } from './i18n';
 import { getAnalysisScore, getIndicativeValue, getValueProjection } from './analysis';
+import { useAuth } from './lib/auth';
+import { requestListingAnalysis } from './lib/analyzeListing';
 
 function formatPrice(price: number, lang: Lang): string {
   return new Intl.NumberFormat(lang === 'fr' ? 'fr-FR' : 'en-GB').format(price) + ' €';
@@ -132,15 +135,21 @@ interface CarDetailProps {
   lang: Lang;
   onClose: () => void;
   onEdit: () => void;
+  onReanalyzed?: (listing: CarListing) => void;
 }
 
-export default function CarDetail({ car, lang, onClose, onEdit }: CarDetailProps) {
+export default function CarDetail({ car, lang, onClose, onEdit, onReanalyzed }: CarDetailProps) {
   const [shared, setShared] = useState(false);
   const [projectionYears, setProjectionYears] = useState(3);
   const [projectionKmPerYear, setProjectionKmPerYear] = useState(10000);
+  const [reanalyzing, setReanalyzing] = useState(false);
+  const { user } = useAuth();
   const t = getT(lang);
 
-  const realisticPrice = getIndicativeValue(car);
+  // Prefer the AI-reasoned fair price once analyzed; fall back to the instant
+  // client-side formula for listings that haven't been analyzed yet.
+  const aiPrice = car.valueAnalysis?.estimatedFairPrice;
+  const realisticPrice = aiPrice ?? getIndicativeValue(car);
   const analysisScore = getAnalysisScore(car);
   const discount = realisticPrice != null && car.price != null ? car.price - realisticPrice : null;
   const discountPct = discount != null && car.price ? Math.round((discount / car.price) * 100) : null;
@@ -149,6 +158,18 @@ export default function CarDetail({ car, lang, onClose, onEdit }: CarDetailProps
       ? Math.min(100, Math.max(0, ((realisticPrice / car.price) - 0.75) / 0.35 * 100))
       : 0;
   const valueProjection = getValueProjection(car, { years: projectionYears, kmPerYear: projectionKmPerYear });
+
+  const handleReanalyze = async () => {
+    setReanalyzing(true);
+    try {
+      const analysis = await requestListingAnalysis(car.id);
+      onReanalyzed?.({ ...car, ...analysis });
+    } catch (err) {
+      console.warn('[911analytics] échec de la réanalyse:', err);
+    } finally {
+      setReanalyzing(false);
+    }
+  };
 
   const handleShare = async () => {
     const shareUrl = `${window.location.origin}${window.location.pathname}?listing=${encodeURIComponent(car.id)}`;
@@ -176,6 +197,17 @@ export default function CarDetail({ car, lang, onClose, onEdit }: CarDetailProps
       <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="fixed bottom-0 right-0 top-0 z-50 w-full max-w-2xl overflow-y-auto border-l border-white/10 bg-[#0d0d0d] shadow-2xl">
         <div className="sticky top-4 z-10 ml-auto mr-4 flex w-fit items-center gap-2">
+          {user && (
+            <button
+              onClick={() => void handleReanalyze()}
+              disabled={reanalyzing}
+              aria-label={t('reanalyze')}
+              title={t('reanalyze')}
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/50 backdrop-blur-md transition-all hover:border-amber-400/30 hover:text-amber-200 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <RefreshCw className={`h-4 w-4 ${reanalyzing ? 'animate-spin' : ''}`} />
+            </button>
+          )}
           <button
             onClick={onEdit}
             aria-label={t('editListing')}
@@ -393,7 +425,9 @@ export default function CarDetail({ car, lang, onClose, onEdit }: CarDetailProps
                 <div className="relative mb-2 h-2 rounded-full bg-white/10"><div className="absolute left-0 top-0 h-full rounded-full bg-gradient-to-r from-amber-400/40 to-amber-400/80" style={{ width: `${pricePosition}%` }} /><div className="absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-amber-300 bg-[#0a0a0a] shadow-lg" style={{ left: `${pricePosition}%` }} /></div>
                 <div className="flex items-center justify-between text-xs"><span className="font-light text-white/30">{formatPrice(Math.round(car.price * 0.75), lang)}</span><span className="font-light text-white/30">{formatPrice(Math.round(car.price * 1.1), lang)}</span></div>
                 <div className="mt-3 flex items-center gap-2 rounded-lg bg-amber-400/10 px-3 py-2"><span className="text-xs font-light text-amber-200/80">{t('negotiationMargin')}: <span className="font-medium text-amber-200">{discount >= 0 ? '-' : '+'}{formatPrice(Math.abs(discount), lang)}</span> ({Math.abs(discountPct)}%)</span></div>
-                <p className="mt-3 text-[11px] font-light leading-relaxed text-white/30">{t('realisticPriceExplanation')}</p>
+                <p className="mt-3 text-[11px] font-light leading-relaxed text-white/30">
+                  {car.valueAnalysis?.priceRationale || t('realisticPriceExplanation')}
+                </p>
               </div>
             )}
 
