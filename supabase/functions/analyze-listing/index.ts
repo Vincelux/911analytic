@@ -45,9 +45,9 @@ const OPTION_LABELS: Record<string, string> = {
 };
 const OPTION_TIERS: Record<string, string> = {
   sportChrono: 'high', pse: 'high', rearSteering: 'high', pasm: 'high',
-  sportSuspension: 'high', axleLift: 'high', carbonBrakes: 'high', lsd: 'high', pdcc: 'high',
+  sportSuspension: 'high', axleLift: 'high', lsd: 'high', pdcc: 'high',
   sportSeats: 'notable', fullLeather: 'notable', bose: 'notable', sunroof: 'notable',
-  matrixLed: 'notable', pts: 'notable', x51: 'notable', carPlay: 'notable',
+  matrixLed: 'notable', pts: 'notable', x51: 'notable', carPlay: 'notable', carbonBrakes: 'notable',
   carbonTrim: 'appeal',
 };
 
@@ -82,6 +82,12 @@ const PRICE_ESTIMATE_GUIDE =
   'that moved your estimate up or down (rarity, options, condition signals, market trend for this generation). ' +
   'If the price field is missing, omit estimatedFairPrice and say so in priceRationale.';
 
+const PORSCHE_APPROVED_GUIDE =
+  'If porscheApproved is true, treat it as a strong positive factor: the car has passed Porsche\'s own ' +
+  'certified pre-owned inspection and typically carries a manufacturer warranty — mention it as a value/' +
+  'retention factor and let it reduce (but not eliminate) generic condition-related vigilance points. Its ' +
+  'absence is not itself a negative signal — most genuine, good listings are not Porsche Approved.';
+
 const analysisTool = {
   name: 'report_analysis',
   description: 'Report an expert-style analysis of this 911 listing for a prospective buyer.',
@@ -101,6 +107,14 @@ const analysisTool = {
         },
       },
       negotiationArguments: { type: 'array', items: { type: 'string' } },
+      historyHighlights: {
+        type: 'array',
+        items: { type: 'string' },
+        description:
+          'Positive documented-history points found in the seller description (service records, number of ' +
+          'owners, maintenance invoices, notable work done). Only include what is explicitly stated — leave ' +
+          'this empty if the description has no real history detail, rather than restating generic praise.',
+      },
       valueAnalysis: {
         type: 'object',
         properties: {
@@ -178,7 +192,7 @@ Deno.serve(async (req) => {
       "facts about this exact car that you can't know (service history, accident record, etc), " +
       'except where explicitly grounded in the seller description text as described below. ' +
       'This is a general opinion the buyer should independently verify, not a verified inspection.\n\n' +
-      `${OPTIONS_PRIORITY_GUIDE}\n\n${SUSPICIOUS_SIGNALS_GUIDE}\n\n${PRICE_ESTIMATE_GUIDE}`,
+      `${OPTIONS_PRIORITY_GUIDE}\n\n${SUSPICIOUS_SIGNALS_GUIDE}\n\n${PRICE_ESTIMATE_GUIDE}\n\n${PORSCHE_APPROVED_GUIDE}`,
     messages: [
       {
         role: 'user',
@@ -195,6 +209,7 @@ Deno.serve(async (req) => {
               transmission: listing.transmission,
               fuelType: listing.fuel_type,
               presentOptions,
+              porscheApproved: listing.porsche_approved ?? false,
               sellerDescription: listing.seller_description ?? null,
             },
             null,
@@ -205,11 +220,18 @@ Deno.serve(async (req) => {
   });
 
   const toolUse = response.content.find((b) => b.type === 'tool_use') as
-    | { input: { vigilancePoints: unknown; negotiationArguments: unknown; valueAnalysis: unknown } }
+    | {
+        input: {
+          vigilancePoints: unknown;
+          negotiationArguments: unknown;
+          valueAnalysis: unknown;
+          historyHighlights?: unknown;
+        };
+      }
     | undefined;
   if (!toolUse) return jsonResponse({ error: "L'IA n'a pas produit d'analyse exploitable." }, 502);
 
-  const { vigilancePoints, negotiationArguments, valueAnalysis } = toolUse.input;
+  const { vigilancePoints, negotiationArguments, valueAnalysis, historyHighlights } = toolUse.input;
 
   const { error: updateError } = await supabase
     .from('listings')
@@ -217,9 +239,10 @@ Deno.serve(async (req) => {
       vigilance_points: vigilancePoints,
       negotiation_arguments: negotiationArguments,
       value_analysis: valueAnalysis,
+      history_highlights: historyHighlights ?? [],
     })
     .eq('id', id);
   if (updateError) return jsonResponse({ error: `Échec de la sauvegarde : ${updateError.message}` }, 500);
 
-  return jsonResponse({ vigilancePoints, negotiationArguments, valueAnalysis });
+  return jsonResponse({ vigilancePoints, negotiationArguments, valueAnalysis, historyHighlights: historyHighlights ?? [] });
 });

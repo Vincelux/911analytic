@@ -43,9 +43,9 @@ const OPTION_LABELS = {
 // weight the negotiation/value-factor prompt below.
 const OPTION_TIERS = {
   sportChrono: 'high', pse: 'high', rearSteering: 'high', pasm: 'high',
-  sportSuspension: 'high', axleLift: 'high', carbonBrakes: 'high', lsd: 'high', pdcc: 'high',
+  sportSuspension: 'high', axleLift: 'high', lsd: 'high', pdcc: 'high',
   sportSeats: 'notable', fullLeather: 'notable', bose: 'notable', sunroof: 'notable',
-  matrixLed: 'notable', pts: 'notable', x51: 'notable', carPlay: 'notable',
+  matrixLed: 'notable', pts: 'notable', x51: 'notable', carPlay: 'notable', carbonBrakes: 'notable',
   carbonTrim: 'appeal',
 };
 const OPTIONS_HINT =
@@ -226,6 +226,12 @@ const extractionTool = {
                 "description — condition, history, ownership claims. Keep the original language. Never invent " +
                 "anything the seller didn't say; omit if there's no free text for this listing.",
             },
+            porscheApproved: {
+              type: 'boolean',
+              description:
+                'True only if this listing explicitly states the car is certified under the official "Porsche ' +
+                'Approved" pre-owned program (or local equivalent). Omit if not mentioned — never guess.',
+            },
           },
           required: [
             'model', 'generation', 'price', 'mileage', 'year', 'power', 'fuelType',
@@ -283,6 +289,14 @@ const analysisTool = {
         },
       },
       negotiationArguments: { type: 'array', items: { type: 'string' } },
+      historyHighlights: {
+        type: 'array',
+        items: { type: 'string' },
+        description:
+          'Positive documented-history points found in the seller description (service records, number of ' +
+          'owners, maintenance invoices, notable work done). Only include what is explicitly stated — leave ' +
+          'this empty if the description has no real history detail, rather than restating generic praise.',
+      },
       valueAnalysis: {
         type: 'object',
         properties: {
@@ -338,6 +352,12 @@ const PRICE_ESTIMATE_GUIDE =
   'that moved your estimate up or down (rarity, options, condition signals, market trend for this generation). ' +
   'If the price field is missing, omit estimatedFairPrice and say so in priceRationale.';
 
+const PORSCHE_APPROVED_GUIDE =
+  'If porscheApproved is true, treat it as a strong positive factor: the car has passed Porsche\'s own ' +
+  'certified pre-owned inspection and typically carries a manufacturer warranty — mention it as a value/' +
+  'retention factor and let it reduce (but not eliminate) generic condition-related vigilance points. Its ' +
+  'absence is not itself a negative signal — most genuine, good listings are not Porsche Approved.';
+
 async function analyzeListing(listing) {
   const presentOptions = (listing.options ?? [])
     .filter((o) => o.present)
@@ -355,7 +375,7 @@ async function analyzeListing(listing) {
       "facts about this exact car that you can't know (service history, accident record, etc), " +
       'except where explicitly grounded in the seller description text as described below. ' +
       'This is a general opinion the buyer should independently verify, not a verified inspection.\n\n' +
-      `${OPTIONS_PRIORITY_GUIDE}\n\n${SUSPICIOUS_SIGNALS_GUIDE}\n\n${PRICE_ESTIMATE_GUIDE}`,
+      `${OPTIONS_PRIORITY_GUIDE}\n\n${SUSPICIOUS_SIGNALS_GUIDE}\n\n${PRICE_ESTIMATE_GUIDE}\n\n${PORSCHE_APPROVED_GUIDE}`,
     messages: [
       {
         role: 'user',
@@ -371,6 +391,7 @@ async function analyzeListing(listing) {
               price: listing.price,
               transmission: listing.transmission,
               fuelType: listing.fuel_type,
+              porscheApproved: listing.porsche_approved ?? false,
               presentOptions,
               sellerDescription: listing.seller_description ?? null,
             },
@@ -442,6 +463,7 @@ async function scrapeCustomSources() {
           .filter((key) => key in OPTION_LABELS)
           .map((key) => ({ key, label: OPTION_LABELS[key], present: true })),
         seller_description: item.sellerDescriptionExcerpt ?? null,
+        porsche_approved: item.porscheApproved ?? null,
         last_seen_at: new Date().toISOString(),
       };
 
@@ -474,6 +496,7 @@ async function backfillAnalysis() {
           vigilance_points: analysis.vigilancePoints,
           negotiation_arguments: analysis.negotiationArguments,
           value_analysis: analysis.valueAnalysis,
+          history_highlights: analysis.historyHighlights ?? [],
         })
         .eq('id', listing.id);
       if (updateError) console.log(`  update failed for ${listing.id}: ${updateError.message}`);

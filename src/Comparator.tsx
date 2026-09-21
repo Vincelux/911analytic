@@ -52,8 +52,8 @@ interface ComparatorProps {
 export default function Comparator({ cars, lang, onClose, onRemove }: ComparatorProps) {
   const t = getT(lang);
   const gridCols = cars.length <= 2 ? 'lg:grid-cols-2' : cars.length === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-4';
-  const [projectionYears, setProjectionYears] = useState(3);
-  const [projectionKmPerYear, setProjectionKmPerYear] = useState(10000);
+  const [projectionYears, setProjectionYears] = useState(5);
+  const [projectionKmPerYear, setProjectionKmPerYear] = useState(5000);
 
   const allOptionKeys = Array.from(new Set(cars.flatMap((c) => c.options.map((o) => o.key)))).sort(
     (a, b) => (optionCatalogIndex[a] ?? 999) - (optionCatalogIndex[b] ?? 999)

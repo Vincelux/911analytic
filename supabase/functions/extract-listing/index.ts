@@ -149,6 +149,13 @@ const extractionTool = {
           'description of the car — condition, history, ownership claims, equipment. Keep the original ' +
           "language. Never summarize or add anything the seller didn't say; omit if there's no free text.",
       },
+      porscheApproved: {
+        type: 'boolean',
+        description:
+          'True only if the listing explicitly states this car is certified under the official "Porsche ' +
+          'Approved" pre-owned program (or local equivalent, e.g. "Porsche Approved", "occasion certifiée ' +
+          'Porsche"). Omit entirely if not mentioned — never guess or infer from dealer type alone.',
+      },
     },
     required: [],
   },

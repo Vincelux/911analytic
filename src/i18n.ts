@@ -32,7 +32,7 @@ export function translateOptionLabel(lang: Lang, key: OptionKey, frenchLabel: st
 export const translations = {
   fr: {
     // Header
-    tagline: "Intelligence d'achat & comparaison",
+    tagline: 'Compare & Buy Clever',
     // Filter panel
     advancedFilters: 'Filtres avancés',
     noFiltersActive: 'Aucun filtre actif — toutes les annonces',
@@ -43,6 +43,7 @@ export const translations = {
     allSellers: 'Tous',
     // Filter labels
     fGeneration: 'Type de 911',
+    multipleSelected: 'sélectionnés',
     fYear: 'Année',
     fBudget: 'Budget (€)',
     fMileage: 'Kilométrage',
@@ -137,7 +138,7 @@ export const translations = {
     clear: 'Vider',
     compareNow: 'Comparer maintenant',
     // Footer
-    footer: "911 Analytics · Intelligence d'achat & comparaison · Données indicatives non contractuelles",
+    footer: '911 Analytics · Compare & Buy Clever · Données indicatives non contractuelles',
     // Stats labels
     year: 'Année',
     km: 'Km',
@@ -193,6 +194,9 @@ export const translations = {
     fieldSellerPhone: 'Téléphone (optionnel)',
     fieldSellerEmail: 'Email (optionnel)',
     fieldOptions: 'Options valorisantes',
+    fieldPorscheApproved: 'Porsche Approved',
+    fieldPorscheApprovedDesc: 'Certifiée par le programme officiel Porsche Approved (occasion certifiée constructeur).',
+    historyHighlightsTitle: 'Historique documenté',
     optionPriority: 'Prioritaire',
     pasteTextKeptNote: "Ce texte est conservé (modifiable) comme description de l'annonce : l'IA s'en sert pour repérer les points de vigilance (accident, import, etc.) lors de l'analyse experte.",
     fieldListingUrl: "URL de l'annonce",
@@ -207,6 +211,8 @@ export const translations = {
     addListingGenericError: "Erreur lors de l'ajout de l'annonce.",
     editListing: "Modifier l'annonce",
     reanalyze: "Relancer l'analyse IA",
+    deleteListing: "Supprimer l'annonce",
+    deleteListingConfirm: 'Supprimer définitivement cette annonce ? Cette action est irréversible.',
     editListingSubmit: 'Enregistrer les modifications',
     editListingSuccess: 'Annonce mise à jour !',
     fieldPasteText: "Coller le texte de l'annonce (optionnel)",
@@ -226,7 +232,7 @@ export const translations = {
     externalSite: 'le site source',
   },
   en: {
-    tagline: 'Buying intelligence & comparison',
+    tagline: 'Compare & Buy Clever',
     advancedFilters: 'Advanced filters',
     noFiltersActive: 'No active filters — all listings',
     reset: 'Reset',
@@ -235,6 +241,7 @@ export const translations = {
     all: 'All',
     allSellers: 'All',
     fGeneration: '911 Type',
+    multipleSelected: 'selected',
     fYear: 'Year',
     fBudget: 'Budget (€)',
     fMileage: 'Mileage',
@@ -321,7 +328,7 @@ export const translations = {
     modelsSelectedShort: 'model(s) selected',
     clear: 'Clear',
     compareNow: 'Compare now',
-    footer: '911 Analytics · Buying intelligence & comparison · Indicative non-contractual data',
+    footer: '911 Analytics · Compare & Buy Clever · Indicative non-contractual data',
     year: 'Year',
     km: 'Km',
     power: 'Power',
@@ -373,6 +380,9 @@ export const translations = {
     fieldSellerPhone: 'Phone (optional)',
     fieldSellerEmail: 'Email (optional)',
     fieldOptions: 'Value-adding options',
+    fieldPorscheApproved: 'Porsche Approved',
+    fieldPorscheApprovedDesc: "Certified under Porsche's official Approved pre-owned program.",
+    historyHighlightsTitle: 'Documented history',
     optionPriority: 'Priority',
     pasteTextKeptNote: "This text is kept (editable) as the listing's description: the AI uses it to spot vigilance points (accident, import, etc.) during expert analysis.",
     fieldListingUrl: 'Listing URL',
@@ -387,6 +397,8 @@ export const translations = {
     addListingGenericError: 'Error while adding the listing.',
     editListing: 'Edit listing',
     reanalyze: 'Re-run AI analysis',
+    deleteListing: 'Delete listing',
+    deleteListingConfirm: 'Permanently delete this listing? This cannot be undone.',
     editListingSubmit: 'Save changes',
     editListingSuccess: 'Listing updated!',
     fieldPasteText: 'Paste the listing text (optional)',

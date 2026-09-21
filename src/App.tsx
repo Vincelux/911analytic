@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Globe, Link as LinkIcon, Loader2, AlertTriangle, UserPlus } from 'lucide-react';
+import { Globe, Link as LinkIcon, Loader2, AlertTriangle, UserPlus, LogIn, LogOut, User as UserIcon, X } from 'lucide-react';
 import {
   type FilterState,
   defaultFilters,
@@ -9,6 +9,7 @@ import {
 import { fetchListings } from './listingsRepository';
 import { type Lang, getT } from './i18n';
 import { useCustomSources } from './customSources';
+import { useAuth } from './lib/auth';
 import FilterPanel from './FilterPanel';
 import CarCard from './CarCard';
 import CarDetail from './CarDetail';
@@ -16,6 +17,7 @@ import Comparator from './Comparator';
 import ComparatorBar from './ComparatorBar';
 import CustomSourcesDrawer from './CustomSourcesDrawer';
 import AddListingDrawer from './AddListingDrawer';
+import LoginForm from './LoginForm';
 
 type View = 'listing' | 'comparator';
 
@@ -27,8 +29,10 @@ export default function App() {
   const [view, setView] = useState<View>('listing');
   const [sourcesOpen, setSourcesOpen] = useState(false);
   const [addListingOpen, setAddListingOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
   const [editingCar, setEditingCar] = useState<CarListing | null>(null);
   const { sources: customSources, addSource, removeSource } = useCustomSources();
+  const { user, signOut } = useAuth();
   const [listings, setListings] = useState<CarListing[]>([]);
   const [listingsLoading, setListingsLoading] = useState(true);
   const [listingsError, setListingsError] = useState<string | null>(null);
@@ -137,6 +141,30 @@ export default function App() {
               )}
             </button>
 
+            {/* Account */}
+            {user ? (
+              <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5">
+                <UserIcon className="h-3.5 w-3.5 text-amber-300/70" />
+                <span className="hidden max-w-[140px] truncate text-xs font-light text-white/60 sm:inline">{user.email}</span>
+                <button
+                  onClick={() => void signOut()}
+                  aria-label={t('logout')}
+                  title={t('logout')}
+                  className="text-white/40 transition-colors hover:text-white/80"
+                >
+                  <LogOut className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setAccountOpen(true)}
+                className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs font-light text-white/60 transition-all hover:border-amber-400/30 hover:text-white"
+              >
+                <LogIn className="h-3.5 w-3.5 text-amber-300/70" />
+                <span className="hidden sm:inline">{t('loginSubmit')}</span>
+              </button>
+            )}
+
             {/* Language switcher */}
             <div className="flex items-center gap-2">
               <Globe className="h-4 w-4 text-white/30" />
@@ -237,6 +265,31 @@ export default function App() {
         />
       )}
 
+      {/* Account / login panel */}
+      {accountOpen && !user && (
+        <>
+          <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" onClick={() => setAccountOpen(false)} />
+          <div className="fixed bottom-0 right-0 top-0 z-50 w-full max-w-md overflow-y-auto border-l border-white/10 bg-[#0d0d0d] shadow-2xl">
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/5 bg-[#0d0d0d]/95 px-6 py-4 backdrop-blur-xl">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-400/10 text-amber-300">
+                  <LogIn className="h-4 w-4" />
+                </div>
+                <h2 className="text-sm font-light tracking-wide text-white">{t('loginTitle')}</h2>
+              </div>
+              <button
+                onClick={() => setAccountOpen(false)}
+                aria-label={lang === 'fr' ? 'Fermer' : 'Close'}
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/50 transition-all hover:border-white/20 hover:text-white"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <LoginForm lang={lang} onClose={() => setAccountOpen(false)} />
+          </div>
+        </>
+      )}
+
       {/* Custom sources panel */}
       {sourcesOpen && (
         <CustomSourcesDrawer
@@ -259,6 +312,18 @@ export default function App() {
           }}
           onAdded={(listing) => setListings((prev) => [listing, ...prev])}
           onUpdated={handleListingUpdated}
+          onDeleted={(id) => {
+            setListings((prev) => prev.filter((l) => l.id !== id));
+            setSelectedCar((prev) => (prev && prev.id === id ? null : prev));
+            setSelectedIds((prev) => {
+              if (!prev.has(id)) return prev;
+              const next = new Set(prev);
+              next.delete(id);
+              return next;
+            });
+            setAddListingOpen(false);
+            setEditingCar(null);
+          }}
         />
       )}
 

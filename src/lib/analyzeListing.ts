@@ -5,6 +5,7 @@ export interface ListingAnalysisResult {
   vigilancePoints: VigilancePoint[];
   negotiationArguments: string[];
   valueAnalysis: ValueAnalysisData;
+  historyHighlights: string[];
 }
 
 /** Calls the analyze-listing Edge Function to (re)generate a listing's AI analysis. Requires an authenticated session. */

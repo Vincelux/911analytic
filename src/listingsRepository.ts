@@ -33,6 +33,8 @@ interface ListingRow {
   value_analysis: CarListing['valueAnalysis'];
   notes: string | null;
   seller_description: string | null;
+  history_highlights: string[];
+  porsche_approved: boolean | null;
 }
 
 function fromRow(row: ListingRow): CarListing {
@@ -67,6 +69,8 @@ function fromRow(row: ListingRow): CarListing {
     valueAnalysis: row.value_analysis,
     notes: row.notes,
     sellerDescription: row.seller_description,
+    historyHighlights: row.history_highlights,
+    porscheApproved: row.porsche_approved,
   };
 }
 
@@ -120,6 +124,7 @@ export interface ListingInput {
   notes?: string | null;
   options?: CarListing['options'];
   sellerDescription?: string | null;
+  porscheApproved?: boolean | null;
 }
 
 function toRowPatch(input: ListingInput): Record<string, unknown> {
@@ -147,6 +152,7 @@ function toRowPatch(input: ListingInput): Record<string, unknown> {
   if ('notes' in input) patch.notes = input.notes;
   if ('options' in input) patch.options = input.options;
   if ('sellerDescription' in input) patch.seller_description = input.sellerDescription;
+  if ('porscheApproved' in input) patch.porsche_approved = input.porscheApproved;
   return patch;
 }
 
@@ -180,4 +186,12 @@ export async function updateListing(id: string, patch: ListingInput): Promise<Ca
 
   if (error) throw error;
   return fromRow(data as ListingRow);
+}
+
+/** Permanently deletes a listing. Requires an authenticated Supabase session. */
+export async function deleteListing(id: string): Promise<void> {
+  if (!supabase) throw new Error('Supabase non configuré.');
+
+  const { error } = await supabase.from('listings').delete().eq('id', id);
+  if (error) throw error;
 }
