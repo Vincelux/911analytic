@@ -1,9 +1,36 @@
+import type { OptionKey } from './data';
+
 export type Lang = 'fr' | 'en';
+
+const optionLabelsEn: Record<OptionKey, string> = {
+  x51: 'X51 Powerkit',
+  pse: 'PSE Sport Exhaust',
+  chrono: 'Chrono Plus clock',
+  sportSeats: 'Sport seats',
+  sportChrono: 'Sport Chrono Package',
+  carbonBrakes: 'PCCB Carbon Brakes',
+  pasm: 'PASM Adaptive Suspension',
+  pdcc: 'PDCC Active Roll Stabilization',
+  lsd: 'Limited-slip differential',
+  rearSteering: 'Rear-axle steering',
+  matrixLed: 'Matrix LED headlights (PDLS+)',
+  bose: 'Premium sound system',
+  axleLift: 'Front axle lift',
+  pts: 'Special paint / Paint to Sample',
+  carbonTrim: 'Carbon trim package (interior/exterior)',
+  fullLeather: 'Full leather upholstery',
+};
+
+/** Translates a CarOption.key to a localized label; falls back to the given French label. */
+export function translateOptionLabel(lang: Lang, key: OptionKey, frenchLabel: string): string {
+  if (lang === 'en') return optionLabelsEn[key] ?? frenchLabel;
+  return frenchLabel;
+}
 
 export const translations = {
   fr: {
     // Header
-    tagline: 'Moteur de recherche européen',
+    tagline: "Intelligence d'achat & comparaison",
     // Filter panel
     advancedFilters: 'Filtres avancés',
     noFiltersActive: 'Aucun filtre actif — toutes les annonces',
@@ -80,6 +107,12 @@ export const translations = {
     expertOpinion: "Avis de l'Expert IA",
     realisticPrice: 'Prix de transaction réaliste',
     negotiationMargin: 'Marge de négociation estimée',
+    valueProjectionTitle: 'Simulateur de valeur future',
+    projectionYears: 'Durée de possession (ans)',
+    projectionKmPerYear: 'Km parcourus / an',
+    projectedValueLabel: 'Valeur estimée à ce terme',
+    projectionUnavailable: 'Projection indisponible (prix manquant).',
+    projectionDisclaimer: "Estimation indicative basée sur une courbe de dépréciation générique âge/kilométrage — ne remplace pas une expertise de marché.",
     negotiationArgs: '3 arguments de négociation',
     shareToPartner: 'Partager le dossier au Mandataire Partenaire',
     shared: 'Dossier partagé au mandataire',
@@ -98,7 +131,7 @@ export const translations = {
     clear: 'Vider',
     compareNow: 'Comparer maintenant',
     // Footer
-    footer: '911 Analytics · Moteur de recherche européen · Données indicatives non contractuelles',
+    footer: "911 Analytics · Intelligence d'achat & comparaison · Données indicatives non contractuelles",
     // Stats labels
     year: 'Année',
     km: 'Km',
@@ -153,6 +186,7 @@ export const translations = {
     fieldSellerRating: 'Note du vendeur (optionnel)',
     fieldSellerPhone: 'Téléphone (optionnel)',
     fieldSellerEmail: 'Email (optionnel)',
+    fieldOptions: 'Options valorisantes',
     fieldListingUrl: "URL de l'annonce",
     fieldListingSource: 'Site source',
     fieldListingSourcePlaceholder: 'Ex : mobile.de, site du concessionnaire…',
@@ -183,7 +217,7 @@ export const translations = {
     externalSite: 'le site source',
   },
   en: {
-    tagline: 'European search engine',
+    tagline: 'Buying intelligence & comparison',
     advancedFilters: 'Advanced filters',
     noFiltersActive: 'No active filters — all listings',
     reset: 'Reset',
@@ -253,6 +287,12 @@ export const translations = {
     expertOpinion: 'AI Expert Opinion',
     realisticPrice: 'Realistic transaction price',
     negotiationMargin: 'Estimated negotiation margin',
+    valueProjectionTitle: 'Future value simulator',
+    projectionYears: 'Holding period (years)',
+    projectionKmPerYear: 'Km driven / year',
+    projectedValueLabel: 'Estimated value at that point',
+    projectionUnavailable: 'Projection unavailable (missing price).',
+    projectionDisclaimer: 'Indicative estimate based on a generic age/mileage depreciation curve — not a substitute for a market appraisal.',
     negotiationArgs: '3 negotiation arguments',
     shareToPartner: 'Share file to Partner Broker',
     shared: 'File shared to partner broker',
@@ -268,7 +308,7 @@ export const translations = {
     modelsSelectedShort: 'model(s) selected',
     clear: 'Clear',
     compareNow: 'Compare now',
-    footer: '911 Analytics · European search engine · Indicative non-contractual data',
+    footer: '911 Analytics · Buying intelligence & comparison · Indicative non-contractual data',
     year: 'Year',
     km: 'Km',
     power: 'Power',
@@ -319,6 +359,7 @@ export const translations = {
     fieldSellerRating: 'Seller rating (optional)',
     fieldSellerPhone: 'Phone (optional)',
     fieldSellerEmail: 'Email (optional)',
+    fieldOptions: 'Value-adding options',
     fieldListingUrl: 'Listing URL',
     fieldListingSource: 'Source site',
     fieldListingSourcePlaceholder: 'E.g. mobile.de, dealer website…',

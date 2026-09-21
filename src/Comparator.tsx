@@ -1,6 +1,6 @@
-import { X, Check, Share2, Zap, Volume2, Timer, Armchair, ShieldCheck, Car as CarIcon } from 'lucide-react';
+import { X, Check, Share2, Zap, Volume2, Timer, Armchair, ShieldCheck, Gauge, Star, Car as CarIcon } from 'lucide-react';
 import type { CarListing } from './data';
-import { type Lang, getT, translateOption } from './i18n';
+import { type Lang, getT, translateOption, translateOptionLabel } from './i18n';
 
 function formatPrice(price: number, lang: Lang): string {
   return new Intl.NumberFormat(lang === 'fr' ? 'fr-FR' : 'en-GB').format(price) + ' €';
@@ -22,6 +22,16 @@ const optionIcons: Record<string, typeof Zap> = {
   sportSeats: Armchair,
   sportChrono: Timer,
   carbonBrakes: ShieldCheck,
+  pasm: Gauge,
+  pdcc: Gauge,
+  lsd: Gauge,
+  rearSteering: Gauge,
+  matrixLed: Zap,
+  bose: Volume2,
+  axleLift: Zap,
+  pts: Star,
+  carbonTrim: ShieldCheck,
+  fullLeather: Armchair,
 };
 
 interface ComparatorProps {
@@ -70,7 +80,7 @@ export default function Comparator({ cars, lang, onClose, onRemove }: Comparator
           {cars.map((car) => (
             <div key={car.id} className="overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.04] to-transparent">
               {/* Image */}
-              <div className="relative h-40 overflow-hidden">
+              <div className="relative aspect-[4/3] overflow-hidden">
                 {car.image ? (
                   <img src={car.image} alt={car.model ?? ''} className="h-full w-full object-cover" />
                 ) : (
@@ -156,7 +166,8 @@ export default function Comparator({ cars, lang, onClose, onRemove }: Comparator
               </thead>
               <tbody>
                 {allOptionKeys.map((optKey, rowIdx) => {
-                  const optLabel = cars[0].options.find((o) => o.key === optKey)?.label || optKey;
+                  const frLabel = cars.map((c) => c.options.find((o) => o.key === optKey)).find(Boolean)?.label || optKey;
+                  const optLabel = translateOptionLabel(lang, optKey, frLabel);
                   const Icon = optionIcons[optKey] || Zap;
                   return (
                     <tr key={optKey} className={rowIdx % 2 === 0 ? 'bg-white/[0.01]' : ''}>

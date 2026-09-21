@@ -16,9 +16,57 @@ export function getIndicativeValue(car: CarListing): number | null {
     car.mileage == null ? 1 : Math.max(0.88, 1 - Math.max(0, car.mileage - 50000) / 1000000);
   const ratingAdjustment =
     car.sellerRating == null ? 1 : 0.96 + Math.min(0.06, Math.max(0, car.sellerRating - 4) * 0.03);
-  const optionsAdjustment = 1 + Math.min(0.04, (car.options?.length ?? 0) * 0.005);
+  const presentOptions = (car.options ?? []).filter((o) => o.present).length;
+  const optionsAdjustment = 1 + Math.min(0.04, presentOptions * 0.008);
   const estimate = historyAverage * ageAdjustment * mileageAdjustment * ratingAdjustment * optionsAdjustment;
   return Math.round(Math.max(car.price * 0.75, Math.min(car.price * 1.1, estimate)));
+}
+
+export interface ValueProjectionInput {
+  /** Years the buyer plans to keep the car. */
+  years: number;
+  /** Kilometres the buyer expects to drive per year. */
+  kmPerYear: number;
+}
+
+export interface ValueProjection {
+  currentValue: number;
+  projectedValue: number;
+  deltaAbsolute: number;
+  deltaPct: number;
+}
+
+/**
+ * Projects the indicative value forward by re-applying the same age/mileage
+ * curve used in getIndicativeValue to a hypothetical future state. This is a
+ * transparent heuristic, not a market forecast — it answers "given this
+ * holding period and mileage, how does the car's position on the usual
+ * depreciation curve change" rather than predicting real market prices.
+ */
+export function getValueProjection(car: CarListing, input: ValueProjectionInput): ValueProjection | null {
+  const currentValue = getIndicativeValue(car);
+  if (currentValue == null) return null;
+
+  const years = Math.max(0, input.years);
+  const kmPerYear = Math.max(0, input.kmPerYear);
+
+  const age = car.year == null ? 0 : Math.max(0, new Date().getFullYear() - car.year);
+  const mileage = car.mileage ?? 0;
+  const ageAdjustmentNow = Math.max(0.82, 1 - age * 0.006);
+  const mileageAdjustmentNow = Math.max(0.88, 1 - Math.max(0, mileage - 50000) / 1000000);
+
+  const futureAge = age + years;
+  const futureMileage = mileage + years * kmPerYear;
+  const ageAdjustmentFuture = Math.max(0.82, 1 - futureAge * 0.006);
+  const mileageAdjustmentFuture = Math.max(0.88, 1 - Math.max(0, futureMileage - 50000) / 1000000);
+
+  const projectedValue = Math.round(
+    currentValue * (ageAdjustmentFuture / ageAdjustmentNow) * (mileageAdjustmentFuture / mileageAdjustmentNow)
+  );
+  const deltaAbsolute = projectedValue - currentValue;
+  const deltaPct = Math.round((deltaAbsolute / currentValue) * 1000) / 10;
+
+  return { currentValue, projectedValue, deltaAbsolute, deltaPct };
 }
 
 export function getAnalysisScore(car: CarListing): number {

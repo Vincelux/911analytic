@@ -129,10 +129,36 @@ const extractionTool = {
       sellerPhone: { type: 'string' },
       sellerEmail: { type: 'string' },
       listingSource: { type: 'string', description: 'e.g. "mobile.de", "AutoScout24"' },
+      options: {
+        type: 'array',
+        description:
+          'Value-adding factory options explicitly mentioned in the listing text (any language). Only include a code if that option is clearly stated as present — never guess.',
+        items: {
+          type: 'string',
+          enum: [
+            'x51', 'pse', 'chrono', 'sportSeats', 'sportChrono', 'carbonBrakes',
+            'pasm', 'pdcc', 'lsd', 'rearSteering', 'matrixLed', 'bose', 'axleLift',
+            'pts', 'carbonTrim', 'fullLeather',
+          ],
+        },
+      },
     },
     required: [],
   },
 };
+
+// Maps each option code to the terms that indicate it in listing text, so
+// the model above has something concrete to match against.
+const OPTIONS_HINT =
+  'x51=X51 Powerkit (964 power upgrade); pse=Porsche Sport Exhaust/échappement sport; ' +
+  'chrono=Chrono Plus dashboard clock; sportSeats=sport seats/sièges sport; ' +
+  'sportChrono=Sport Chrono Package/Pack Sport Chrono; carbonBrakes=PCCB/ceramic brakes/freins carbone; ' +
+  'pasm=PASM/adaptive suspension/suspension pilotée; pdcc=PDCC/active roll stabilization; ' +
+  'lsd=limited-slip differential/différentiel autobloquant/Sperrdifferential; ' +
+  'rearSteering=rear-axle steering/essieu arrière directeur/Hinterachslenkung; ' +
+  'matrixLed=Matrix LED headlights/PDLS+/phares LED Matrix; bose=Bose/Burmester/premium sound system; ' +
+  'axleLift=front axle lift/levage essieu avant/Liftsystem; pts=Paint to Sample/peinture spéciale; ' +
+  'carbonTrim=carbon trim package/pack carbone; fullLeather=full leather/sellerie cuir intégrale.';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -219,7 +245,8 @@ Deno.serve(async (req) => {
         content:
           "Extrait les informations de cette annonce Porsche 911 via l'outil report_listing. " +
           "N'invente jamais une valeur qui n'est pas visible dans le texte ci-dessous — omets " +
-          `simplement le champ si l'information n'y figure pas.\n\n${parts.join('\n\n')}`,
+          "simplement le champ si l'information n'y figure pas. Pour le champ options, base-toi " +
+          `sur ce lexique : ${OPTIONS_HINT}\n\n${parts.join('\n\n')}`,
       },
     ],
   });

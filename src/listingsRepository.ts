@@ -116,6 +116,7 @@ export interface ListingInput {
   listingUrl?: string | null;
   listingSource?: string | null;
   notes?: string | null;
+  options?: CarListing['options'];
 }
 
 function toRowPatch(input: ListingInput): Record<string, unknown> {
@@ -141,6 +142,7 @@ function toRowPatch(input: ListingInput): Record<string, unknown> {
   if ('listingUrl' in input) patch.listing_url = input.listingUrl;
   if ('listingSource' in input) patch.listing_source = input.listingSource;
   if ('notes' in input) patch.notes = input.notes;
+  if ('options' in input) patch.options = input.options;
   return patch;
 }
 

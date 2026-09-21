@@ -17,6 +17,37 @@ const ANTHROPIC_API_KEY = requireEnv('ANTHROPIC_API_KEY');
 const EXTRACTION_MODEL = process.env.SCRAPE_MODEL || 'claude-haiku-4-5';
 const USER_AGENT = '911AnalyticsPersonalBot/1.0 (+personal, non-commercial use)';
 
+// Kept in sync with src/data.ts's allOptions — this script has no access to
+// the frontend's module graph, so the option catalog is duplicated here.
+const OPTION_LABELS = {
+  x51: 'X51 Powerkit',
+  pse: 'Échappement Sport PSE',
+  chrono: 'Chrono Plus',
+  sportSeats: 'Sièges Sport',
+  sportChrono: 'Pack Sport Chrono',
+  carbonBrakes: 'Freins Carbone PCCB',
+  pasm: 'Suspension pilotée PASM',
+  pdcc: 'Stabilisation active PDCC',
+  lsd: 'Différentiel à glissement limité',
+  rearSteering: 'Essieu arrière directeur',
+  matrixLed: 'Phares LED Matrix (PDLS+)',
+  bose: 'Système audio haut de gamme',
+  axleLift: "Levage de l'essieu avant",
+  pts: 'Peinture spéciale / Paint to Sample',
+  carbonTrim: 'Pack carbone (intérieur/extérieur)',
+  fullLeather: 'Sellerie cuir intégrale',
+};
+const OPTIONS_HINT =
+  'x51=X51 Powerkit (964 power upgrade); pse=Porsche Sport Exhaust/échappement sport; ' +
+  'chrono=Chrono Plus dashboard clock; sportSeats=sport seats/sièges sport; ' +
+  'sportChrono=Sport Chrono Package/Pack Sport Chrono; carbonBrakes=PCCB/ceramic brakes/freins carbone; ' +
+  'pasm=PASM/adaptive suspension/suspension pilotée; pdcc=PDCC/active roll stabilization; ' +
+  'lsd=limited-slip differential/différentiel autobloquant/Sperrdifferential; ' +
+  'rearSteering=rear-axle steering/essieu arrière directeur/Hinterachslenkung; ' +
+  'matrixLed=Matrix LED headlights/PDLS+/phares LED Matrix; bose=Bose/Burmester/premium sound system; ' +
+  'axleLift=front axle lift/levage essieu avant/Liftsystem; pts=Paint to Sample/peinture spéciale; ' +
+  'carbonTrim=carbon trim package/pack carbone; fullLeather=full leather/sellerie cuir intégrale.';
+
 function requireEnv(name) {
   const value = process.env[name];
   if (!value) throw new Error(`Missing required env var: ${name}`);
@@ -165,6 +196,15 @@ const extractionTool = {
             sellerPhone: { type: 'string' },
             sellerEmail: { type: 'string' },
             listingUrl: { type: 'string', description: 'Absolute URL to this specific ad' },
+            options: {
+              type: 'array',
+              description:
+                'Value-adding factory options explicitly mentioned for this listing. Only include a code if clearly stated as present — never guess.',
+              items: {
+                type: 'string',
+                enum: Object.keys(OPTION_LABELS),
+              },
+            },
           },
           required: [
             'model', 'generation', 'price', 'mileage', 'year', 'power', 'fuelType',
@@ -191,7 +231,8 @@ async function extractListingsFromPage(pageUrl, html) {
           `This is the HTML of a car listings page. Find every Porsche 911 for sale on it ` +
           `and report it via the report_listings tool. Resolve any relative links to absolute ` +
           `URLs using the page URL above. Skip anything that isn't a 911. If a field isn't visible ` +
-          `on the page, omit it rather than guessing.\n\n${html}`,
+          `on the page, omit it rather than guessing. For the options field, use this lexicon: ` +
+          `${OPTIONS_HINT}\n\n${html}`,
       },
     ],
   });
@@ -329,6 +370,9 @@ async function scrapeCustomSources() {
         listing_url: item.listingUrl,
         listing_source: new URL(source.url).hostname.replace(/^www\./, ''),
         conformity: null,
+        options: (item.options ?? [])
+          .filter((key) => key in OPTION_LABELS)
+          .map((key) => ({ key, label: OPTION_LABELS[key], present: true })),
         last_seen_at: new Date().toISOString(),
       };
 

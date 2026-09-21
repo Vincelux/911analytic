@@ -1,4 +1,20 @@
-export type OptionKey = 'x51' | 'pse' | 'chrono' | 'sportSeats' | 'sportChrono' | 'carbonBrakes';
+export type OptionKey =
+  | 'x51'
+  | 'pse'
+  | 'chrono'
+  | 'sportSeats'
+  | 'sportChrono'
+  | 'carbonBrakes'
+  | 'pasm'
+  | 'pdcc'
+  | 'lsd'
+  | 'rearSteering'
+  | 'matrixLed'
+  | 'bose'
+  | 'axleLift'
+  | 'pts'
+  | 'carbonTrim'
+  | 'fullLeather';
 
 export interface CarOption {
   key: OptionKey;
@@ -142,13 +158,23 @@ export const defaultFilters: FilterState = {
   rating: 'Toutes',
 };
 
-const allOptions: CarOption[] = [
+export const allOptions: CarOption[] = [
   { key: 'x51', label: 'X51 Powerkit', present: false },
   { key: 'pse', label: 'Échappement Sport PSE', present: false },
   { key: 'chrono', label: 'Chrono Plus', present: false },
   { key: 'sportSeats', label: 'Sièges Sport', present: false },
   { key: 'sportChrono', label: 'Pack Sport Chrono', present: false },
   { key: 'carbonBrakes', label: 'Freins Carbone PCCB', present: false },
+  { key: 'pasm', label: 'Suspension pilotée PASM', present: false },
+  { key: 'pdcc', label: 'Stabilisation active PDCC', present: false },
+  { key: 'lsd', label: 'Différentiel à glissement limité', present: false },
+  { key: 'rearSteering', label: 'Essieu arrière directeur', present: false },
+  { key: 'matrixLed', label: 'Phares LED Matrix (PDLS+)', present: false },
+  { key: 'bose', label: 'Système audio haut de gamme', present: false },
+  { key: 'axleLift', label: "Levage de l'essieu avant", present: false },
+  { key: 'pts', label: 'Peinture spéciale / Paint to Sample', present: false },
+  { key: 'carbonTrim', label: 'Pack carbone (intérieur/extérieur)', present: false },
+  { key: 'fullLeather', label: 'Sellerie cuir intégrale', present: false },
 ];
 
 function opts(present: OptionKey[]): CarOption[] {

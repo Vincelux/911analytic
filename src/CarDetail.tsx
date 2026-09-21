@@ -38,7 +38,7 @@ import {
 } from 'lucide-react';
 import type { CarListing, PricePoint, ValueAnalysisData, VigilancePoint } from './data';
 import { type Lang, getT } from './i18n';
-import { getAnalysisScore, getIndicativeValue } from './analysis';
+import { getAnalysisScore, getIndicativeValue, getValueProjection } from './analysis';
 
 function formatPrice(price: number, lang: Lang): string {
   return new Intl.NumberFormat(lang === 'fr' ? 'fr-FR' : 'en-GB').format(price) + ' €';
@@ -122,6 +122,8 @@ interface CarDetailProps {
 
 export default function CarDetail({ car, lang, onClose, onEdit }: CarDetailProps) {
   const [shared, setShared] = useState(false);
+  const [projectionYears, setProjectionYears] = useState(3);
+  const [projectionKmPerYear, setProjectionKmPerYear] = useState(10000);
   const t = getT(lang);
 
   const realisticPrice = getIndicativeValue(car);
@@ -132,6 +134,7 @@ export default function CarDetail({ car, lang, onClose, onEdit }: CarDetailProps
     realisticPrice != null && car.price
       ? Math.min(100, Math.max(0, ((realisticPrice / car.price) - 0.75) / 0.35 * 100))
       : 0;
+  const valueProjection = getValueProjection(car, { years: projectionYears, kmPerYear: projectionKmPerYear });
 
   const handleShare = async () => {
     const shareUrl = `${window.location.origin}${window.location.pathname}?listing=${encodeURIComponent(car.id)}`;
@@ -176,7 +179,7 @@ export default function CarDetail({ car, lang, onClose, onEdit }: CarDetailProps
           </button>
         </div>
 
-        <div className="relative -mt-13 h-64 overflow-hidden">
+        <div className="relative -mt-13 aspect-[16/9] overflow-hidden">
           {car.image ? (
             <img src={car.image} alt={car.model ?? ''} className="h-full w-full object-cover" />
           ) : (
@@ -371,6 +374,54 @@ export default function CarDetail({ car, lang, onClose, onEdit }: CarDetailProps
                 <div className="mt-3 flex items-center gap-2 rounded-lg bg-amber-400/10 px-3 py-2"><span className="text-xs font-light text-amber-200/80">{t('negotiationMargin')}: <span className="font-medium text-amber-200">{discount >= 0 ? '-' : '+'}{formatPrice(Math.abs(discount), lang)}</span> ({Math.abs(discountPct)}%)</span></div>
               </div>
             )}
+
+            <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.02] p-5">
+              <div className="mb-4 flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-amber-300" />
+                <span className="text-sm font-light text-white/80">{t('valueProjectionTitle')}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="cdProjectionYears" className="mb-1.5 block text-[11px] font-light uppercase tracking-wider text-white/30">{t('projectionYears')}</label>
+                  <input
+                    id="cdProjectionYears"
+                    type="number"
+                    min={0}
+                    max={30}
+                    value={projectionYears}
+                    onChange={(e) => setProjectionYears(Math.max(0, Number(e.target.value)))}
+                    className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm font-light text-white outline-none transition-colors focus:border-amber-400/40"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="cdProjectionKm" className="mb-1.5 block text-[11px] font-light uppercase tracking-wider text-white/30">{t('projectionKmPerYear')}</label>
+                  <input
+                    id="cdProjectionKm"
+                    type="number"
+                    min={0}
+                    step={1000}
+                    value={projectionKmPerYear}
+                    onChange={(e) => setProjectionKmPerYear(Math.max(0, Number(e.target.value)))}
+                    className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm font-light text-white outline-none transition-colors focus:border-amber-400/40"
+                  />
+                </div>
+              </div>
+              {valueProjection ? (
+                <div className="mt-4 flex items-center justify-between rounded-lg bg-white/[0.03] px-3 py-2.5">
+                  <span className="text-xs font-light text-white/50">{t('projectedValueLabel')}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-white">{formatPrice(valueProjection.projectedValue, lang)}</span>
+                    <span className={`flex items-center gap-1 text-xs font-light ${valueProjection.deltaAbsolute < 0 ? 'text-red-300' : valueProjection.deltaAbsolute > 0 ? 'text-emerald-300' : 'text-white/40'}`}>
+                      {valueProjection.deltaAbsolute < 0 ? <TrendingDown className="h-3.5 w-3.5" /> : valueProjection.deltaAbsolute > 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <Minus className="h-3.5 w-3.5" />}
+                      {valueProjection.deltaPct > 0 ? '+' : ''}{valueProjection.deltaPct}%
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <p className="mt-4 text-xs font-light text-white/30">{t('projectionUnavailable')}</p>
+              )}
+              <p className="mt-3 text-[11px] font-light leading-relaxed text-white/25">{t('projectionDisclaimer')}</p>
+            </div>
 
             <div className="mt-4"><p className="mb-3 text-xs uppercase tracking-[0.15em] text-white/30">{t('negotiationArgs')}</p><div className="space-y-2">{car.negotiationArguments.map((arg, i) => <div key={i} className="flex items-start gap-3 rounded-lg border border-white/5 bg-white/[0.02] px-4 py-3"><div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-400/10 text-xs font-medium text-amber-300">{i + 1}</div><p className="text-sm font-light leading-relaxed text-white/60">{arg}</p></div>)}</div></div>
           </div>

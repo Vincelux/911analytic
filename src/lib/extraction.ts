@@ -19,6 +19,7 @@ export interface ExtractionResult {
   sellerPhone?: string;
   sellerEmail?: string;
   listingSource?: string;
+  options?: string[];
   urlFetched?: boolean;
   urlBlockedReason?: string | null;
 }
