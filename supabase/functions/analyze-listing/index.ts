@@ -82,6 +82,18 @@ const PRICE_ESTIMATE_GUIDE =
   'that moved your estimate up or down (rarity, options, condition signals, market trend for this generation). ' +
   'If the price field is missing, omit estimatedFairPrice and say so in priceRationale.';
 
+const HISTORY_VALUE_GUIDE =
+  'Documented history is a real value driver, in both directions — factor it into retentionScore and ' +
+  'estimatedFairPrice explicitly, not just into historyHighlights: (1) Rich, specific documented history ' +
+  '(service invoices, full book, known ownership chain, notable recent work like a clutch or engine rebuild) ' +
+  'is a genuine positive — let it lift retentionScore and estimatedFairPrice, and mention it in valueAnalysis ' +
+  '.factors. (2) Missing, vague, or inconsistent history (no service record for the mileage/age, no books, ' +
+  '"historique inconnu") is a genuine negative — let it lower retentionScore and estimatedFairPrice, and turn ' +
+  'it into a concrete negotiationArguments entry (e.g. "aucun historique d\'entretien fourni — argument pour ' +
+  'négocier ou budgéter une inspection complète"). Absence of any history information at all (buyer simply ' +
+  'didn\'t mention it) is neutral, not automatically negative — only penalize when the listing itself signals ' +
+  'a gap (mileage/age inconsistency, explicit "no books", etc), matching category (4) above.';
+
 const PORSCHE_APPROVED_GUIDE =
   'If porscheApproved is true, treat it as a strong positive factor: the car has passed Porsche\'s own ' +
   'certified pre-owned inspection and typically carries a manufacturer warranty — mention it as a value/' +
@@ -192,7 +204,7 @@ Deno.serve(async (req) => {
       "facts about this exact car that you can't know (service history, accident record, etc), " +
       'except where explicitly grounded in the seller description text as described below. ' +
       'This is a general opinion the buyer should independently verify, not a verified inspection.\n\n' +
-      `${OPTIONS_PRIORITY_GUIDE}\n\n${SUSPICIOUS_SIGNALS_GUIDE}\n\n${PRICE_ESTIMATE_GUIDE}\n\n${PORSCHE_APPROVED_GUIDE}`,
+      `${OPTIONS_PRIORITY_GUIDE}\n\n${SUSPICIOUS_SIGNALS_GUIDE}\n\n${PRICE_ESTIMATE_GUIDE}\n\n${HISTORY_VALUE_GUIDE}\n\n${PORSCHE_APPROVED_GUIDE}`,
     messages: [
       {
         role: 'user',
