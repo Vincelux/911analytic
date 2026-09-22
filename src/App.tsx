@@ -10,6 +10,7 @@ import { fetchListings } from './listingsRepository';
 import { type Lang, getT } from './i18n';
 import { useCustomSources } from './customSources';
 import { useAuth } from './lib/auth';
+import { saveSearchCriteria } from './lib/searchCriteria';
 import FilterPanel from './FilterPanel';
 import CarCard from './CarCard';
 import CarDetail from './CarDetail';
@@ -61,6 +62,16 @@ export default function App() {
   }, []);
 
   const filteredListings = useMemo(() => filterListings(listings, filters), [listings, filters]);
+
+  // Mirrors "Filtres avancés" server-side (debounced) so the scraping job
+  // can bound what it fetches/analyzes to these criteria instead of
+  // everything it finds on a source page. Only when logged in, since
+  // that's who the scraping budget belongs to.
+  useEffect(() => {
+    if (!user) return;
+    const timeout = setTimeout(() => void saveSearchCriteria(filters), 800);
+    return () => clearTimeout(timeout);
+  }, [filters, user]);
 
   const selectedCars = useMemo(
     () => listings.filter((l) => selectedIds.has(l.id)),
