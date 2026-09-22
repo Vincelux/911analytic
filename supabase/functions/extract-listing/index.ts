@@ -104,9 +104,13 @@ const extractionTool = {
   input_schema: {
     type: 'object' as const,
     properties: {
-      model: { type: 'string' },
+      model: {
+        type: 'string',
+        description: 'Model/trim name only, e.g. "911 Carrera S" — not the full listing title. Model names ' +
+          "are the same across languages, keep as-is; don't include condition/marketing text from the title.",
+      },
       generation: { type: 'string', description: 'One of: Classique, G-Modell, 964, 993, 996, 997, 991, 992' },
-      phase: { type: 'string' },
+      phase: { type: 'string', description: 'e.g. "Phase I" — translate to French if stated in another language, omit if unknown' },
       imageUrl: {
         type: 'string',
         description:
@@ -116,8 +120,16 @@ const extractionTool = {
       mileage: { type: 'number' },
       year: { type: 'number' },
       power: { type: 'number', description: 'engine power in hp' },
-      fuelType: { type: 'string' },
-      transmission: { type: 'string' },
+      fuelType: {
+        type: 'string',
+        enum: ['Essence', 'Hybride', 'Électrique'],
+        description: 'Normalize to this exact French value, translating from whatever language the source uses (e.g. "Benzina"/"Petrol" → Essence).',
+      },
+      transmission: {
+        type: 'string',
+        enum: ['Manuelle', 'Automatique / PDK'],
+        description: 'Normalize to this exact French value, translating from whatever language the source uses (e.g. "Manuale"/"Manual" → Manuelle).',
+      },
       country: {
         type: 'string',
         description: 'One of: France, Allemagne, Italie, Espagne, Belgique, Pays-Bas, Suisse, Autriche, Portugal, Luxembourg',
@@ -263,7 +275,13 @@ Deno.serve(async (req) => {
           "Extrait les informations de cette annonce Porsche 911 via l'outil report_listing. " +
           "N'invente jamais une valeur qui n'est pas visible dans le texte ci-dessous — omets " +
           "simplement le champ si l'information n'y figure pas. Pour le champ options, base-toi " +
-          `sur ce lexique : ${OPTIONS_HINT}\n\n${parts.join('\n\n')}`,
+          `sur ce lexique : ${OPTIONS_HINT}\n\n` +
+          "La page source peut être dans n'importe quelle langue (italien, allemand, anglais...). " +
+          "Traduis systématiquement en français tout champ descriptif (model, phase, et tout texte " +
+          "libre autre que sellerDescriptionExcerpt) — ne laisse jamais passer une valeur dans la " +
+          "langue d'origine. Les identifiants restent tels quels : ville, nom du vendeur, téléphone, " +
+          "email, URL. sellerDescriptionExcerpt seul reste dans sa langue d'origine (verbatim).\n\n" +
+          parts.join('\n\n'),
       },
     ],
   });

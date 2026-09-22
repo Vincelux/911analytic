@@ -31,7 +31,7 @@ import {
   BookOpen,
 } from 'lucide-react';
 import type { CarListing, ValueAnalysisData, VigilancePoint } from './data';
-import { type Lang, getT, translateOptionLabel } from './i18n';
+import { type Lang, getT, translateOption, translateOptionLabel } from './i18n';
 import { getAnalysisScore, getIndicativeValue, getValueProjection } from './analysis';
 import { useAuth } from './lib/auth';
 import { requestListingAnalysis } from './lib/analyzeListing';
@@ -254,7 +254,9 @@ export default function CarDetail({ car, lang, onClose, onEdit, onReanalyzed }: 
                 {car.price != null ? formatPrice(car.price, lang) : '—'}
               </p>
               {(car.transmission || car.fuelType) && (
-                <p className="mt-1 text-xs font-light text-white/40">{[car.transmission, car.fuelType].filter(Boolean).join(' · ')}</p>
+                <p className="mt-1 text-xs font-light text-white/40">
+                  {[car.transmission, car.fuelType].filter((v): v is string => Boolean(v)).map((v) => translateOption(lang, v)).join(' · ')}
+                </p>
               )}
             </div>
             <div className="text-right">
