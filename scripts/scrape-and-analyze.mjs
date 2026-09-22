@@ -16,6 +16,10 @@ const SUPABASE_SERVICE_ROLE_KEY = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
 const ANTHROPIC_API_KEY = requireEnv('ANTHROPIC_API_KEY');
 const EXTRACTION_MODEL = process.env.SCRAPE_MODEL || 'claude-haiku-4-5';
 const USER_AGENT = '911AnalyticsPersonalBot/1.0 (+personal, non-commercial use)';
+// Hard cap on paid AI analysis calls per run, regardless of how many
+// unanalyzed listings have piled up in the table — protects the API budget
+// from a single run if extraction ever produces a burst of new listings.
+const MAX_ANALYSIS_PER_RUN = Number(process.env.SCRAPE_MAX_ANALYSIS) || 20;
 
 // Kept in sync with src/data.ts's allOptions — this script has no access to
 // the frontend's module graph, so the option catalog is duplicated here.
@@ -192,6 +196,13 @@ const extractionTool = {
               description: 'One of: Classique, G-Modell, 964, 993, 996, 997, 991, 992',
             },
             phase: { type: 'string', description: 'e.g. "Phase I", omit if unknown' },
+            imageUrl: {
+              type: 'string',
+              description:
+                'Direct URL of this listing\'s main photo, if one is visible on the page (e.g. an og:image ' +
+                'meta tag or the first gallery image for this specific car). Must be an absolute, publicly ' +
+                'reachable image URL. Omit if none is clearly associated with this listing.',
+            },
             price: { type: 'number' },
             mileage: { type: 'number' },
             year: { type: 'number' },
@@ -244,7 +255,7 @@ const extractionTool = {
   },
 };
 
-async function extractListingsFromPage(pageUrl, html) {
+async function extractListingsFromPage(pageUrl, html, criteriaHint) {
   const response = await anthropic.messages.create({
     model: EXTRACTION_MODEL,
     max_tokens: 4096,
@@ -259,13 +270,85 @@ async function extractListingsFromPage(pageUrl, html) {
           `and report it via the report_listings tool. Resolve any relative links to absolute ` +
           `URLs using the page URL above. Skip anything that isn't a 911. If a field isn't visible ` +
           `on the page, omit it rather than guessing. For the options field, use this lexicon: ` +
-          `${OPTIONS_HINT}\n\n${html}`,
+          `${OPTIONS_HINT}\n\n` +
+          (criteriaHint ? `Only report listings matching these buyer criteria — skip anything clearly ` +
+            `outside them (if a criterion's value isn't visible on the page, don't use it to exclude the ` +
+            `listing): ${criteriaHint}\n\n` : '') +
+          html,
       },
     ],
   });
 
   const toolUse = response.content.find((b) => b.type === 'tool_use');
   return toolUse?.input?.listings ?? [];
+}
+
+// --- Search criteria: mirrors the app's "Filtres avancés" (src/data.ts's
+// FilterState), saved server-side by src/lib/searchCriteria.ts whenever the
+// owner changes them. Bounds what the scraper keeps instead of everything
+// it finds on a source page. Defaults (empty generation, full ranges,
+// "Toutes"/"Tous"/"Europe Globale") mean "no restriction", matching the
+// app's own defaultFilters — so no saved row behaves like today.
+const DEFAULT_CRITERIA = {
+  generation: [], year_min: 1964, year_max: 2026, price_min: 0, price_max: 500000,
+  km_min: 0, km_max: 300000, power_min: 0, fuel_type: 'Toutes', transmission: 'Toutes',
+  country: 'Europe Globale', seller_type: 'Tous',
+};
+
+async function fetchSearchCriteria() {
+  const { data, error } = await supabase.from('search_criteria').select('*').eq('id', true).maybeSingle();
+  if (error) {
+    console.log(`  couldn't load search criteria (${error.message}) — no filtering applied`);
+    return DEFAULT_CRITERIA;
+  }
+  return data ?? DEFAULT_CRITERIA;
+}
+
+// Only mentions fields that actually narrow the search versus the app's
+// own no-restriction defaults — returns '' when the criteria are wide open,
+// so the prompt doesn't waste tokens (or risk confusing the model) stating
+// a "restriction" that excludes nothing.
+function describeCriteria(c) {
+  const parts = [];
+  if (c.generation?.length) parts.push(`generation must be one of: ${c.generation.join(', ')}`);
+  if (c.year_min > DEFAULT_CRITERIA.year_min || c.year_max < DEFAULT_CRITERIA.year_max) {
+    parts.push(`year between ${c.year_min} and ${c.year_max}`);
+  }
+  if (c.price_min > DEFAULT_CRITERIA.price_min || c.price_max < DEFAULT_CRITERIA.price_max) {
+    parts.push(`price between ${c.price_min}€ and ${c.price_max}€`);
+  }
+  if (c.km_min > DEFAULT_CRITERIA.km_min || c.km_max < DEFAULT_CRITERIA.km_max) {
+    parts.push(`mileage between ${c.km_min} and ${c.km_max} km`);
+  }
+  if (c.power_min > 0) parts.push(`power at least ${c.power_min} hp`);
+  if (c.fuel_type !== 'Toutes') parts.push(`fuel type: ${c.fuel_type}`);
+  if (c.transmission !== 'Toutes') parts.push(`transmission: ${c.transmission}`);
+  if (c.country !== 'Europe Globale') parts.push(`country: ${c.country}`);
+  if (c.seller_type !== 'Tous') parts.push(`seller type: ${c.seller_type}`);
+  return parts.join('; ');
+}
+
+function normalize(s) {
+  return typeof s === 'string' ? s.trim().toLowerCase() : s;
+}
+
+// Safety net independent of the AI's own compliance with the prompt hint
+// above — a listing that slips through gets rejected here before it's ever
+// written to the database or queued for a paid analysis call. fuelType/
+// transmission/country/sellerType are freeform strings from extraction (no
+// enum enforced in the tool schema), so compared case-insensitively rather
+// than with strict equality.
+function matchesCriteria(item, c) {
+  if (c.generation?.length && !c.generation.includes(item.generation)) return false;
+  if (item.year != null && (item.year < c.year_min || item.year > c.year_max)) return false;
+  if (item.price != null && (item.price < c.price_min || item.price > c.price_max)) return false;
+  if (item.mileage != null && (item.mileage < c.km_min || item.mileage > c.km_max)) return false;
+  if (c.power_min > 0 && item.power != null && item.power < c.power_min) return false;
+  if (c.fuel_type !== 'Toutes' && item.fuelType && normalize(item.fuelType) !== normalize(c.fuel_type)) return false;
+  if (c.transmission !== 'Toutes' && item.transmission && normalize(item.transmission) !== normalize(c.transmission)) return false;
+  if (c.country !== 'Europe Globale' && item.country && normalize(item.country) !== normalize(c.country)) return false;
+  if (c.seller_type !== 'Tous' && item.sellerType && normalize(item.sellerType) !== normalize(c.seller_type)) return false;
+  return true;
 }
 
 // --- Claude: generate vigilance points / negotiation args / value analysis ---
@@ -424,6 +507,10 @@ async function scrapeCustomSources() {
   const { data: sources, error } = await supabase.from('custom_sources').select('*');
   if (error) throw error;
 
+  const criteria = await fetchSearchCriteria();
+  const criteriaHint = describeCriteria(criteria);
+  console.log(criteriaHint ? `\n[criteria] ${criteriaHint}` : '\n[criteria] none set — no filtering applied');
+
   for (const source of sources ?? []) {
     console.log(`\n[source] ${source.url}`);
     const { allowed, reason } = await isAllowedByRobotsTxt(source.url);
@@ -440,20 +527,25 @@ async function scrapeCustomSources() {
 
     let extracted;
     try {
-      extracted = await extractListingsFromPage(source.url, html);
+      extracted = await extractListingsFromPage(source.url, html, criteriaHint);
     } catch (err) {
       console.log(`  extraction failed: ${err.message}`);
       continue;
     }
     console.log(`  found ${extracted.length} listing(s)`);
 
-    for (const item of extracted) {
+    const matching = extracted.filter((item) => matchesCriteria(item, criteria));
+    if (matching.length < extracted.length) {
+      console.log(`  skipped ${extracted.length - matching.length} listing(s) outside the saved criteria`);
+    }
+
+    for (const item of matching) {
       const row = {
         id: generateId(),
         model: item.model,
         generation: item.generation,
         phase: item.phase ?? null,
-        image: null,
+        image: item.imageUrl ?? null,
         price: Math.round(item.price),
         mileage: Math.round(item.mileage),
         year: Math.round(item.year),
@@ -496,9 +588,13 @@ async function backfillAnalysis() {
     .is('value_analysis', null);
   if (error) throw error;
 
+  const queue = (unanalyzed ?? []).slice(0, MAX_ANALYSIS_PER_RUN);
   console.log(`\n[analysis] ${unanalyzed?.length ?? 0} listing(s) without AI analysis yet`);
+  if ((unanalyzed?.length ?? 0) > queue.length) {
+    console.log(`  capping this run to ${queue.length} (MAX_ANALYSIS_PER_RUN) — the rest will run next time`);
+  }
 
-  for (const listing of unanalyzed ?? []) {
+  for (const listing of queue) {
     try {
       const analysis = await analyzeListing(listing);
       if (!analysis) continue;
