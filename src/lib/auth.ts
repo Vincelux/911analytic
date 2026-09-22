@@ -24,9 +24,15 @@ export function useAuth() {
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  const signIn = async (email: string, password: string): Promise<string | null> => {
+  const requestOtp = async (email: string): Promise<string | null> => {
     if (!supabase) return 'Supabase non configuré.';
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+    return error ? error.message : null;
+  };
+
+  const verifyOtp = async (email: string, code: string): Promise<string | null> => {
+    if (!supabase) return 'Supabase non configuré.';
+    const { error } = await supabase.auth.verifyOtp({ email, token: code, type: 'email' });
     return error ? error.message : null;
   };
 
@@ -35,5 +41,5 @@ export function useAuth() {
     await supabase.auth.signOut();
   };
 
-  return { user, loading, isSupabaseConfigured, signIn, signOut };
+  return { user, loading, isSupabaseConfigured, requestOtp, verifyOtp, signOut };
 }
