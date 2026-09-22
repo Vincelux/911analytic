@@ -1,6 +1,6 @@
 import { Star, ShieldCheck, Gauge, Calendar, MapPin, Store, User, Car as CarIcon } from 'lucide-react';
 import type { CarListing } from './data';
-import { type Lang, getT } from './i18n';
+import { type Lang, getT, translateOption } from './i18n';
 
 function formatPrice(price: number, lang: Lang): string {
   return new Intl.NumberFormat(lang === 'fr' ? 'fr-FR' : 'en-GB').format(price) + ' €';
@@ -153,7 +153,7 @@ export default function CarCard({ car, isSelected, onToggleSelect, onClick, lang
             </p>
           </div>
           <div className="text-right">
-            <span className="text-[10px] uppercase tracking-wider text-white/30">{car.transmission || '—'}</span>
+            <span className="text-[10px] uppercase tracking-wider text-white/30">{car.transmission ? translateOption(lang, car.transmission) : '—'}</span>
             <p className="text-xs font-light text-white/50">{car.power != null ? `${car.power} ch` : '—'}</p>
           </div>
         </div>

@@ -190,12 +190,16 @@ const extractionTool = {
         items: {
           type: 'object',
           properties: {
-            model: { type: 'string' },
+            model: {
+              type: 'string',
+              description: 'Model/trim name only, e.g. "911 Carrera S" — not the full listing title. Model ' +
+                "names are the same across languages, keep as-is; don't include condition/marketing text.",
+            },
             generation: {
               type: 'string',
               description: 'One of: Classique, G-Modell, 964, 993, 996, 997, 991, 992',
             },
-            phase: { type: 'string', description: 'e.g. "Phase I", omit if unknown' },
+            phase: { type: 'string', description: 'e.g. "Phase I" — translate to French if stated in another language, omit if unknown' },
             imageUrl: {
               type: 'string',
               description:
@@ -207,8 +211,16 @@ const extractionTool = {
             mileage: { type: 'number' },
             year: { type: 'number' },
             power: { type: 'number', description: 'engine power in hp' },
-            fuelType: { type: 'string' },
-            transmission: { type: 'string' },
+            fuelType: {
+              type: 'string',
+              enum: ['Essence', 'Hybride', 'Électrique'],
+              description: 'Normalize to this exact French value, translating from whatever language the page uses (e.g. "Benzina"/"Petrol" → Essence).',
+            },
+            transmission: {
+              type: 'string',
+              enum: ['Manuelle', 'Automatique / PDK'],
+              description: 'Normalize to this exact French value, translating from whatever language the page uses (e.g. "Manuale"/"Manual" → Manuelle).',
+            },
             country: {
               type: 'string',
               description:
@@ -271,6 +283,11 @@ async function extractListingsFromPage(pageUrl, html, criteriaHint) {
           `URLs using the page URL above. Skip anything that isn't a 911. If a field isn't visible ` +
           `on the page, omit it rather than guessing. For the options field, use this lexicon: ` +
           `${OPTIONS_HINT}\n\n` +
+          `The page can be in any language (Italian, German, English...). Systematically translate every ` +
+          `descriptive field (model, phase, and any free text other than sellerDescriptionExcerpt) into ` +
+          `French — never let a value through in its original language. Identifiers stay as-is: city, ` +
+          `seller name, phone, email, URL. sellerDescriptionExcerpt alone stays in its original language ` +
+          `(verbatim).\n\n` +
           (criteriaHint ? `Only report listings matching these buyer criteria — skip anything clearly ` +
             `outside them (if a criterion's value isn't visible on the page, don't use it to exclude the ` +
             `listing): ${criteriaHint}\n\n` : '') +
