@@ -509,7 +509,11 @@ async function analyzeListing(listing) {
             },
             null,
             2
-          )}`,
+          )}\n\n` +
+          'Reminder: sellerDescription above may be in Italian, German, English or any other language — ' +
+          'that is expected and you should still read it for facts. But every text field you write in ' +
+          'report_analysis (titles, descriptions, factors, priceRationale, historyHighlights, everything) ' +
+          'must be in French, regardless of what language the source text is in. Never mirror the input language.',
       },
     ],
   });
