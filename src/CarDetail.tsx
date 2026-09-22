@@ -78,9 +78,9 @@ function TrendBadge({ trend, label }: { trend: ValueAnalysisData['trend']; label
   }[trend];
   const Icon = config.icon;
   return (
-    <div className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 ${config.color}`}>
-      <Icon className="h-4 w-4" />
-      <span className="text-xs font-medium tracking-wide">{label}</span>
+    <div className={`inline-flex max-w-full items-start gap-2 rounded-lg border px-3 py-1.5 ${config.color}`}>
+      <Icon className="mt-0.5 h-4 w-4 shrink-0" />
+      <span className="line-clamp-2 text-xs font-medium leading-snug tracking-wide">{label}</span>
     </div>
   );
 }
@@ -364,10 +364,30 @@ export default function CarDetail({ car, lang, onClose, onEdit, onReanalyzed }: 
               <h3 className="mb-3 text-xs uppercase tracking-[0.15em] text-white/30">{t('valueAnalysis')}</h3>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="rounded-xl border border-white/10 bg-white/[0.02] p-5">
-                  <div className="mb-3 flex items-center justify-between"><span className="text-xs uppercase tracking-[0.15em] text-white/30">{t('retentionScore')}</span><span className="rounded-md bg-white/5 px-2 py-0.5 text-[10px] font-light text-white/50">{t('rarity')}: {car.valueAnalysis.rarityLabel}</span></div>
-                  <div className="flex items-end gap-4"><div className="flex items-baseline gap-1"><span className="text-4xl font-light tracking-tight text-white">{car.valueAnalysis.retentionScore}</span><span className="text-lg font-light text-white/30">/10</span></div><div className="flex-1 pb-2"><div className="h-2 overflow-hidden rounded-full bg-white/10"><div className={`h-full rounded-full bg-gradient-to-r ${car.valueAnalysis.retentionScore >= 8 ? 'from-emerald-400 to-emerald-500' : car.valueAnalysis.retentionScore >= 6 ? 'from-amber-400 to-amber-500' : 'from-red-400 to-red-500'} transition-all duration-700`} style={{ width: `${(car.valueAnalysis.retentionScore / 10) * 100}%` }} /></div></div></div>
+                  <div className="mb-3 flex items-start justify-between gap-3">
+                    <span className="text-xs uppercase tracking-[0.15em] text-white/30">{t('retentionScore')}</span>
+                    <span className="line-clamp-2 max-w-[55%] shrink-0 text-right text-[10px] font-light leading-snug text-white/50">
+                      {t('rarity')}: {car.valueAnalysis.rarityLabel}
+                    </span>
+                  </div>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-4xl font-light tracking-tight text-white">{car.valueAnalysis.retentionScore}</span>
+                    <span className="text-lg font-light text-white/30">/10</span>
+                  </div>
+                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
+                    <div
+                      className={`h-full rounded-full bg-gradient-to-r ${car.valueAnalysis.retentionScore >= 8 ? 'from-emerald-400 to-emerald-500' : car.valueAnalysis.retentionScore >= 6 ? 'from-amber-400 to-amber-500' : 'from-red-400 to-red-500'} transition-all duration-700`}
+                      style={{ width: `${(car.valueAnalysis.retentionScore / 10) * 100}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="flex flex-col justify-center rounded-xl border border-white/10 bg-white/[0.02] p-5"><span className="mb-3 text-xs uppercase tracking-[0.15em] text-white/30">{t('futureTrend')}</span><TrendBadge trend={car.valueAnalysis.trend} label={car.valueAnalysis.trendLabel} /><p className="mt-3 text-sm font-light leading-relaxed text-white/40">{car.valueAnalysis.trend === 'up' ? t('trendUpDesc') : car.valueAnalysis.trend === 'stable' ? t('trendStableDesc') : t('trendDownDesc')}</p></div>
+                <div className="rounded-xl border border-white/10 bg-white/[0.02] p-5">
+                  <span className="mb-3 block text-xs uppercase tracking-[0.15em] text-white/30">{t('futureTrend')}</span>
+                  <TrendBadge trend={car.valueAnalysis.trend} label={car.valueAnalysis.trendLabel} />
+                  <p className="mt-3 text-xs font-light leading-relaxed text-white/40">
+                    {car.valueAnalysis.trend === 'up' ? t('trendUpDesc') : car.valueAnalysis.trend === 'stable' ? t('trendStableDesc') : t('trendDownDesc')}
+                  </p>
+                </div>
               </div>
 
               <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.02] p-5"><p className="mb-3 text-xs uppercase tracking-[0.15em] text-white/30">{t('speculationFactors')}</p><ul className="space-y-2">{car.valueAnalysis.factors.map((factor, i) => <li key={i} className="flex items-start gap-2.5"><div className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" /><span className="text-sm font-light leading-relaxed text-white/55">{factor}</span></li>)}</ul></div>
