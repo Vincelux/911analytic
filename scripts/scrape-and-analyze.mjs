@@ -283,6 +283,10 @@ async function extractListingsFromPage(pageUrl, html, criteriaHint) {
           `URLs using the page URL above. Skip anything that isn't a 911. If a field isn't visible ` +
           `on the page, omit it rather than guessing. For the options field, use this lexicon: ` +
           `${OPTIONS_HINT}\n\n` +
+          `Only report listings that show a clear asking price. A listing with no price displayed ` +
+          `(e.g. "vendu"/"venduto"/"sold", a status badge instead of a price, or simply no price at ` +
+          `all) is typically a car that's already sold and no longer actually for sale — skip it entirely, ` +
+          `don't guess a price for it.\n\n` +
           `The page can be in any language (Italian, German, English...). Systematically translate every ` +
           `descriptive field (model, phase, and any free text other than sellerDescriptionExcerpt) into ` +
           `French — never let a value through in its original language. Identifiers stay as-is: city, ` +
@@ -555,9 +559,17 @@ async function scrapeCustomSources() {
     }
     console.log(`  found ${extracted.length} listing(s)`);
 
-    const matching = extracted.filter((item) => matchesCriteria(item, criteria));
-    if (matching.length < extracted.length) {
-      console.log(`  skipped ${extracted.length - matching.length} listing(s) outside the saved criteria`);
+    // Safety net independent of the AI's own compliance with the prompt
+    // instruction above — a priceless listing (typically already sold) is
+    // never worth a row or a paid analysis call.
+    const priced = extracted.filter((item) => item.price != null && item.price > 0);
+    if (priced.length < extracted.length) {
+      console.log(`  skipped ${extracted.length - priced.length} listing(s) with no price (likely already sold)`);
+    }
+
+    const matching = priced.filter((item) => matchesCriteria(item, criteria));
+    if (matching.length < priced.length) {
+      console.log(`  skipped ${priced.length - matching.length} listing(s) outside the saved criteria`);
     }
 
     for (const item of matching) {
