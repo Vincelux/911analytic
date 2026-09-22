@@ -340,9 +340,9 @@ export default function Comparator({ cars, lang, onClose, onRemove }: Comparator
             {cars.map((car) =>
               car.valueAnalysis ? (
                 <div key={car.id} className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
-                  <div className="mb-3 flex items-center justify-between">
+                  <div className="mb-3 flex items-start justify-between gap-3">
                     <span className="text-xs font-light text-white/50">{[car.generation, car.phase].filter(Boolean).join(' ')}</span>
-                    <span className={`rounded-md px-2 py-0.5 text-[10px] font-medium ${
+                    <span className={`line-clamp-2 max-w-[60%] shrink-0 rounded-md px-2 py-0.5 text-right text-[10px] font-medium leading-snug ${
                       car.valueAnalysis.trend === 'up'
                         ? 'bg-emerald-400/10 text-emerald-300'
                         : car.valueAnalysis.trend === 'stable'

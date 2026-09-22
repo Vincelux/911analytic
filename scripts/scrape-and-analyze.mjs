@@ -405,9 +405,17 @@ const analysisTool = {
         type: 'object',
         properties: {
           retentionScore: { type: 'number', description: '0 to 10' },
-          rarityLabel: { type: 'string' },
+          rarityLabel: {
+            type: 'string',
+            description: 'Short badge label ONLY — 1 to 3 words, e.g. "Faible", "Modérée", "Élevée", ' +
+              '"Très recherchée". Never a sentence or list of reasons; put those in factors instead.',
+          },
           trend: { type: 'string', enum: ['up', 'stable', 'down'] },
-          trendLabel: { type: 'string' },
+          trendLabel: {
+            type: 'string',
+            description: 'Short badge label ONLY — 2 to 4 words, e.g. "Plus-value attendue", "Stabilité ' +
+              'garantie", "Risque de décote". Never a sentence or list of reasons; put those in factors instead.',
+          },
           factors: { type: 'array', items: { type: 'string' } },
           estimatedFairPrice: { type: 'number', description: 'AI-reasoned fair price in EUR, see instructions' },
           priceRationale: { type: 'string' },
