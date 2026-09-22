@@ -141,19 +141,9 @@ export default function Comparator({ cars, lang, onClose, onRemove }: Comparator
                     <span className="font-light text-white/40">{t('sellerContact')}</span>
                     <span className="font-light text-white">{car.seller || t('sellerUnknown')}</span>
                   </div>
-                  <div className="flex justify-between border-b border-white/5 pb-1.5">
+                  <div className="flex justify-between">
                     <span className="font-light text-white/40">{t('rating')}</span>
                     <span className="font-light text-white">{car.sellerRating != null ? `${car.sellerRating.toFixed(1)}/5` : '—'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="font-light text-white/40">{t('conformityAI')}</span>
-                    {car.conformity != null ? (
-                      <span className={`font-medium ${car.conformity >= 85 ? 'text-emerald-300' : car.conformity >= 65 ? 'text-amber-300' : 'text-red-300'}`}>
-                        {car.conformity}%
-                      </span>
-                    ) : (
-                      <span className="font-light text-white/30">—</span>
-                    )}
                   </div>
                 </div>
               </div>
@@ -219,45 +209,9 @@ export default function Comparator({ cars, lang, onClose, onRemove }: Comparator
           </div>
         </div>
 
-        {/* Realistic price comparison — instant heuristic, no AI pass needed */}
+        {/* Realistic price + future value projection — merged, shared holding-period/mileage inputs */}
         <div className="mt-8">
           <h2 className="mb-4 text-xs uppercase tracking-[0.3em] text-white/30">{t('realisticPrice')}</h2>
-          <div className={`grid gap-4 ${gridCols}`}>
-            {cars.map((car) => {
-              const realisticPrice = car.valueAnalysis?.estimatedFairPrice ?? getIndicativeValue(car);
-              const discount = realisticPrice != null && car.price != null ? car.price - realisticPrice : null;
-              const discountPct = discount != null && car.price ? Math.round((discount / car.price) * 100) : null;
-              return (
-                <div key={car.id} className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
-                  <div className="mb-3 text-xs font-light text-white/50">{[car.generation, car.phase].filter(Boolean).join(' ')}</div>
-                  {realisticPrice != null ? (
-                    <>
-                      <div className="mb-1 flex items-center gap-1.5">
-                        <TrendingDown className="h-3.5 w-3.5 text-amber-300" />
-                        <span className="text-[10px] uppercase tracking-wider text-white/30">{t('realisticPrice')}</span>
-                      </div>
-                      <div className="text-xl font-light text-amber-300">{formatPrice(realisticPrice, lang)}</div>
-                      {discount != null && discountPct != null && (
-                        <p className="mt-1 text-xs font-light text-amber-200/70">
-                          {t('negotiationMargin')}: <span className="font-medium">{discount >= 0 ? '-' : '+'}{formatPrice(Math.abs(discount), lang)}</span> ({Math.abs(discountPct)}%)
-                        </p>
-                      )}
-                      <p className="mt-2 text-[10px] font-light leading-relaxed text-white/25">
-                        {car.valueAnalysis?.priceRationale || t('realisticPriceExplanation')}
-                      </p>
-                    </>
-                  ) : (
-                    <p className="text-xs font-light text-white/30">{t('projectionUnavailable')}</p>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Future value simulator — shared holding-period/mileage inputs applied to every compared car */}
-        <div className="mt-8">
-          <h2 className="mb-4 text-xs uppercase tracking-[0.3em] text-white/30">{t('valueProjectionTitle')}</h2>
           <div className="mb-4 grid grid-cols-2 gap-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4 sm:max-w-md">
             <div>
               <label htmlFor="cmpProjectionYears" className="mb-1.5 block text-[11px] font-light uppercase tracking-wider text-white/30">{t('projectionYears')}</label>
@@ -286,24 +240,49 @@ export default function Comparator({ cars, lang, onClose, onRemove }: Comparator
           </div>
           <div className={`grid gap-4 ${gridCols}`}>
             {cars.map((car) => {
+              const realisticPrice = car.valueAnalysis?.estimatedFairPrice ?? getIndicativeValue(car);
+              const discount = realisticPrice != null && car.price != null ? car.price - realisticPrice : null;
+              const discountPct = discount != null && car.price ? Math.round((discount / car.price) * 100) : null;
               const projection = getValueProjection(car, { years: projectionYears, kmPerYear: projectionKmPerYear });
               return (
                 <div key={car.id} className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
                   <div className="mb-3 text-xs font-light text-white/50">{[car.generation, car.phase].filter(Boolean).join(' ')}</div>
-                  {projection ? (
+                  {realisticPrice != null ? (
                     <>
-                      <div className="text-[10px] uppercase tracking-wider text-white/30">{t('projectedValueLabel')}</div>
-                      <div className="mt-1 flex items-center gap-2">
-                        <span className="text-xl font-light text-white">{formatPrice(projection.projectedValue, lang)}</span>
-                        <span className={`flex items-center gap-1 text-xs font-light ${projection.deltaAbsolute < 0 ? 'text-red-300' : projection.deltaAbsolute > 0 ? 'text-emerald-300' : 'text-white/40'}`}>
-                          {projection.deltaAbsolute < 0 ? <TrendingDown className="h-3.5 w-3.5" /> : projection.deltaAbsolute > 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <Minus className="h-3.5 w-3.5" />}
-                          {projection.deltaPct > 0 ? '+' : ''}{projection.deltaPct}%
-                        </span>
+                      <div className="mb-1 flex items-center gap-1.5">
+                        <TrendingDown className="h-3.5 w-3.5 text-amber-300" />
+                        <span className="text-[10px] uppercase tracking-wider text-white/30">{t('realisticPrice')}</span>
                       </div>
+                      <div className="text-xl font-light text-amber-300">{formatPrice(realisticPrice, lang)}</div>
+                      {discount != null && discountPct != null && (
+                        <p className="mt-1 text-xs font-light text-amber-200/70">
+                          {t('negotiationMargin')}: <span className="font-medium">{discount >= 0 ? '-' : '+'}{formatPrice(Math.abs(discount), lang)}</span> ({Math.abs(discountPct)}%)
+                        </p>
+                      )}
+                      <p className="mt-2 text-[10px] font-light leading-relaxed text-white/25">
+                        {car.valueAnalysis?.priceRationale || t('realisticPriceExplanation')}
+                      </p>
                     </>
                   ) : (
                     <p className="text-xs font-light text-white/30">{t('projectionUnavailable')}</p>
                   )}
+
+                  <div className="mt-4 border-t border-white/5 pt-3">
+                    {projection ? (
+                      <>
+                        <div className="text-[10px] uppercase tracking-wider text-white/30">{t('projectedValueLabel')}</div>
+                        <div className="mt-1 flex items-center gap-2">
+                          <span className="text-xl font-light text-white">{formatPrice(projection.projectedValue, lang)}</span>
+                          <span className={`flex items-center gap-1 text-xs font-light ${projection.deltaAbsolute < 0 ? 'text-red-300' : projection.deltaAbsolute > 0 ? 'text-emerald-300' : 'text-white/40'}`}>
+                            {projection.deltaAbsolute < 0 ? <TrendingDown className="h-3.5 w-3.5" /> : projection.deltaAbsolute > 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <Minus className="h-3.5 w-3.5" />}
+                            {projection.deltaPct > 0 ? '+' : ''}{projection.deltaPct}%
+                          </span>
+                        </div>
+                      </>
+                    ) : (
+                      <p className="text-xs font-light text-white/30">{t('projectionUnavailable')}</p>
+                    )}
+                  </div>
                 </div>
               );
             })}

@@ -1,14 +1,5 @@
 import { useState } from 'react';
 import {
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-} from 'recharts';
-import {
   X,
   Check,
   AlertTriangle,
@@ -16,7 +7,6 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
-  Sparkles,
   Share2,
   Zap,
   Volume2,
@@ -40,7 +30,7 @@ import {
   RefreshCw,
   BookOpen,
 } from 'lucide-react';
-import type { CarListing, PricePoint, ValueAnalysisData, VigilancePoint } from './data';
+import type { CarListing, ValueAnalysisData, VigilancePoint } from './data';
 import { type Lang, getT, translateOptionLabel } from './i18n';
 import { getAnalysisScore, getIndicativeValue, getValueProjection } from './analysis';
 import { useAuth } from './lib/auth';
@@ -79,22 +69,6 @@ const optionIcons: Record<string, typeof Zap> = {
   sunroof: Sun,
   carPlay: Smartphone,
 };
-
-interface CustomTooltipProps {
-  active?: boolean;
-  payload?: Array<{ payload: PricePoint }>;
-}
-
-function CustomTooltip({ active, payload }: CustomTooltipProps) {
-  if (!active || !payload || payload.length === 0) return null;
-  const data = payload[0].payload;
-  return (
-    <div className="rounded-lg border border-amber-400/20 bg-[#111111] px-3.5 py-2.5 shadow-2xl">
-      <p className="text-[10px] uppercase tracking-wider text-white/40">{data.year}</p>
-      <p className="text-sm font-medium text-amber-300">{formatPrice(data.price, 'fr')}</p>
-    </div>
-  );
-}
 
 function TrendBadge({ trend, label }: { trend: ValueAnalysisData['trend']; label: string }) {
   const config = {
@@ -154,10 +128,6 @@ export default function CarDetail({ car, lang, onClose, onEdit, onReanalyzed }: 
   const analysisScore = getAnalysisScore(car);
   const discount = realisticPrice != null && car.price != null ? car.price - realisticPrice : null;
   const discountPct = discount != null && car.price ? Math.round((discount / car.price) * 100) : null;
-  const pricePosition =
-    realisticPrice != null && car.price
-      ? Math.min(100, Math.max(0, ((realisticPrice / car.price) - 0.75) / 0.35 * 100))
-      : 0;
   const valueProjection = getValueProjection(car, { years: projectionYears, kmPerYear: projectionKmPerYear });
 
   const handleReanalyze = async () => {
@@ -390,23 +360,7 @@ export default function CarDetail({ car, lang, onClose, onEdit, onReanalyzed }: 
           {car.valueAnalysis && (
             <div>
               <h3 className="mb-3 text-xs uppercase tracking-[0.15em] text-white/30">{t('valueAnalysis')}</h3>
-              <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.03] to-transparent p-5">
-                <div className="mb-4 flex items-center gap-2"><Sparkles className="h-4 w-4 text-amber-300" /><h4 className="text-sm font-light tracking-[0.1em] text-white/80">{t('priceHistory')}</h4></div>
-                <div className="h-52 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={car.priceHistory} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
-                      <defs><linearGradient id="detailPriceGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#fbbf24" stopOpacity={0.3} /><stop offset="100%" stopColor="#fbbf24" stopOpacity={0} /></linearGradient></defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
-                      <XAxis dataKey="year" tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 11, fontWeight: 300 }} axisLine={{ stroke: 'rgba(255,255,255,0.05)' }} tickLine={false} interval={1} />
-                      <YAxis tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 11, fontWeight: 300 }} axisLine={false} tickLine={false} tickFormatter={(v: number) => `${v / 1000}k`} width={35} />
-                      <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#fbbf24', strokeWidth: 1, strokeDasharray: '4 4' }} />
-                      <Area type="monotone" dataKey="price" stroke="#fbbf24" strokeWidth={2} fill="url(#detailPriceGrad)" dot={{ fill: '#fbbf24', r: 2, strokeWidth: 0 }} activeDot={{ r: 5, fill: '#fbbf24', stroke: '#0a0a0a', strokeWidth: 2 }} />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div className="rounded-xl border border-white/10 bg-white/[0.02] p-5">
                   <div className="mb-3 flex items-center justify-between"><span className="text-xs uppercase tracking-[0.15em] text-white/30">{t('retentionScore')}</span><span className="rounded-md bg-white/5 px-2 py-0.5 text-[10px] font-light text-white/50">{t('rarity')}: {car.valueAnalysis.rarityLabel}</span></div>
                   <div className="flex items-end gap-4"><div className="flex items-baseline gap-1"><span className="text-4xl font-light tracking-tight text-white">{car.valueAnalysis.retentionScore}</span><span className="text-lg font-light text-white/30">/10</span></div><div className="flex-1 pb-2"><div className="h-2 overflow-hidden rounded-full bg-white/10"><div className={`h-full rounded-full bg-gradient-to-r ${car.valueAnalysis.retentionScore >= 8 ? 'from-emerald-400 to-emerald-500' : car.valueAnalysis.retentionScore >= 6 ? 'from-amber-400 to-amber-500' : 'from-red-400 to-red-500'} transition-all duration-700`} style={{ width: `${(car.valueAnalysis.retentionScore / 10) * 100}%` }} /></div></div></div>
@@ -443,20 +397,31 @@ export default function CarDetail({ car, lang, onClose, onEdit, onReanalyzed }: 
               <div className="space-y-2.5">{car.vigilancePoints.map((p, i) => <VigilanceCard key={i} point={p} />)}</div>
             )}
 
-            {realisticPrice != null && car.price != null && discount != null && discountPct != null && (
-              <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.02] p-5">
-                <div className="mb-4 flex items-center justify-between"><div className="flex items-center gap-2"><TrendingDownIcon className="h-4 w-4 text-amber-300" /><span className="text-sm font-light text-white/80">{t('realisticPrice')}</span></div><span className="text-lg font-light text-amber-300">{formatPrice(realisticPrice, lang)}</span></div>
-                <div className="relative mb-2 h-2 rounded-full bg-white/10"><div className="absolute left-0 top-0 h-full rounded-full bg-gradient-to-r from-amber-400/40 to-amber-400/80" style={{ width: `${pricePosition}%` }} /><div className="absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-amber-300 bg-[#0a0a0a] shadow-lg" style={{ left: `${pricePosition}%` }} /></div>
-                <div className="flex items-center justify-between text-xs"><span className="font-light text-white/30">{formatPrice(Math.round(car.price * 0.75), lang)}</span><span className="font-light text-white/30">{formatPrice(Math.round(car.price * 1.1), lang)}</span></div>
-                <div className="mt-3 flex items-center gap-2 rounded-lg bg-amber-400/10 px-3 py-2"><span className="text-xs font-light text-amber-200/80">{t('negotiationMargin')}: <span className="font-medium text-amber-200">{discount >= 0 ? '-' : '+'}{formatPrice(Math.abs(discount), lang)}</span> ({Math.abs(discountPct)}%)</span></div>
-                <p className="mt-3 text-[11px] font-light leading-relaxed text-white/30">
-                  {car.valueAnalysis?.priceRationale || t('realisticPriceExplanation')}
-                </p>
-              </div>
-            )}
-
             <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.02] p-5">
-              <div className="mb-4 flex items-center gap-2">
+              <div className="mb-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <TrendingDownIcon className="h-4 w-4 text-amber-300" />
+                  <span className="text-sm font-light text-white/80">{t('realisticPrice')}</span>
+                </div>
+                {realisticPrice != null && <span className="text-lg font-light text-amber-300">{formatPrice(realisticPrice, lang)}</span>}
+              </div>
+              {realisticPrice != null && car.price != null && discount != null && discountPct != null ? (
+                <>
+                  <div className="flex items-center gap-2 rounded-lg bg-amber-400/10 px-3 py-2">
+                    <span className="text-xs font-light text-amber-200/80">
+                      {t('negotiationMargin')}: <span className="font-medium text-amber-200">{discount >= 0 ? '-' : '+'}{formatPrice(Math.abs(discount), lang)}</span> ({Math.abs(discountPct)}%)
+                    </span>
+                  </div>
+                  <p className="mt-3 text-[11px] font-light leading-relaxed text-white/30">
+                    {car.valueAnalysis?.priceRationale || t('realisticPriceExplanation')}
+                  </p>
+                </>
+              ) : (
+                <p className="text-xs font-light text-white/30">{t('projectionUnavailable')}</p>
+              )}
+
+              <div className="mt-5 border-t border-white/5 pt-4">
+              <div className="mb-3 flex items-center gap-2">
                 <TrendingUp className="h-4 w-4 text-amber-300" />
                 <span className="text-sm font-light text-white/80">{t('valueProjectionTitle')}</span>
               </div>
@@ -501,6 +466,7 @@ export default function CarDetail({ car, lang, onClose, onEdit, onReanalyzed }: 
                 <p className="mt-4 text-xs font-light text-white/30">{t('projectionUnavailable')}</p>
               )}
               <p className="mt-3 text-[11px] font-light leading-relaxed text-white/25">{t('projectionDisclaimer')}</p>
+              </div>
             </div>
 
             <div className="mt-4">

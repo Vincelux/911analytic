@@ -14,11 +14,9 @@ export function getIndicativeValue(car: CarListing): number | null {
   const ageAdjustment = Math.max(0.82, 1 - age * 0.006);
   const mileageAdjustment =
     car.mileage == null ? 1 : Math.max(0.88, 1 - Math.max(0, car.mileage - 50000) / 1000000);
-  const ratingAdjustment =
-    car.sellerRating == null ? 1 : 0.96 + Math.min(0.06, Math.max(0, car.sellerRating - 4) * 0.03);
   const presentOptions = (car.options ?? []).filter((o) => o.present).length;
   const optionsAdjustment = 1 + Math.min(0.04, presentOptions * 0.008);
-  const estimate = historyAverage * ageAdjustment * mileageAdjustment * ratingAdjustment * optionsAdjustment;
+  const estimate = historyAverage * ageAdjustment * mileageAdjustment * optionsAdjustment;
   return Math.round(Math.max(car.price * 0.75, Math.min(car.price * 1.1, estimate)));
 }
 

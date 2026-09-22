@@ -25,12 +25,6 @@ interface CarCardProps {
 
 export default function CarCard({ car, isSelected, onToggleSelect, onClick, lang }: CarCardProps) {
   const t = getT(lang);
-  const conformityColor =
-    car.conformity != null && car.conformity >= 85
-      ? 'text-emerald-300 bg-emerald-400/10 border-emerald-400/20'
-      : car.conformity != null && car.conformity >= 65
-      ? 'text-amber-300 bg-amber-400/10 border-amber-400/20'
-      : 'text-red-300 bg-red-400/10 border-red-400/20';
 
   return (
     <div
@@ -51,16 +45,6 @@ export default function CarCard({ car, isSelected, onToggleSelect, onClick, lang
           </div>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-transparent to-transparent" />
-
-        {/* Conformity badge */}
-        {car.conformity != null && (
-          <div className="absolute right-3 top-3">
-            <div className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 backdrop-blur-md ${conformityColor}`}>
-              <ShieldCheck className="h-3.5 w-3.5" />
-              <span className="text-[11px] font-medium">{car.conformity}%</span>
-            </div>
-          </div>
-        )}
 
         {/* Country flag + Porsche Approved */}
         <div className="absolute left-3 top-3 flex flex-col items-start gap-1.5">

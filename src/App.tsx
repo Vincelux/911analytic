@@ -111,10 +111,7 @@ export default function App() {
             <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-amber-400/30 bg-gradient-to-br from-amber-400/10 to-transparent">
               <span className="text-sm font-semibold tracking-tight text-amber-300">911</span>
             </div>
-            <div>
-              <h1 className="text-base font-light tracking-[0.15em] text-white">911 ANALYTICS</h1>
-              <p className="text-[10px] uppercase tracking-[0.25em] text-white/30">{t('tagline')}</p>
-            </div>
+            <h1 className="text-base font-light tracking-[0.15em] text-white">ANALYTICS</h1>
           </div>
 
           <div className="flex items-center gap-3">
