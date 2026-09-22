@@ -1,4 +1,4 @@
-import { Star, ShieldCheck, Gauge, Calendar, MapPin, Store, User, Car as CarIcon } from 'lucide-react';
+import { Star, ShieldCheck, Gauge, Calendar, MapPin, Store, User, Car as CarIcon, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import type { CarListing } from './data';
 import { type Lang, getT, translateOption } from './i18n';
 
@@ -14,6 +14,12 @@ const flagEmoji: Record<string, string> = {
   FR: '🇫🇷', DE: '🇩🇪', IT: '🇮🇹', ES: '🇪🇸', BE: '🇧🇪',
   NL: '🇳🇱', CH: '🇨🇭', AT: '🇦🇹', PT: '🇵🇹', LU: '🇱🇺',
 };
+
+const trendConfig = {
+  up: { icon: TrendingUp, color: 'text-emerald-300' },
+  stable: { icon: Minus, color: 'text-sky-300' },
+  down: { icon: TrendingDown, color: 'text-red-300' },
+} as const;
 
 interface CarCardProps {
   car: CarListing;
@@ -144,6 +150,24 @@ export default function CarCard({ car, isSelected, onToggleSelect, onClick, lang
             </div>
           )}
         </div>
+
+        {car.valueAnalysis && (
+          <div className="mb-3 flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2">
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-[10px] uppercase tracking-wider text-white/30">{t('retentionScore')}</span>
+              <span className="text-xs font-medium text-white/80">{car.valueAnalysis.retentionScore}/10</span>
+            </div>
+            {(() => {
+              const { icon: TrendIcon, color } = trendConfig[car.valueAnalysis.trend];
+              return (
+                <span className={`flex items-center gap-1 text-[11px] font-light ${color}`}>
+                  <TrendIcon className="h-3 w-3" />
+                  {car.valueAnalysis.trendLabel}
+                </span>
+              );
+            })()}
+          </div>
+        )}
 
         <div className="flex items-center justify-between border-t border-white/5 pt-3">
           <div>
