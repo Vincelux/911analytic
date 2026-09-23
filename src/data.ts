@@ -90,6 +90,8 @@ export interface CarListing {
   historyHighlights?: string[];
   /** Whether this car is part of the official Porsche Approved certified pre-owned program — set manually or detected from the listing text. Not a regular option: a distinct certification signal. */
   porscheApproved?: boolean | null;
+  /** Warranty the seller offers, as stated in the listing (e.g. "12 mois", "Garantie constructeur 24 mois"). Free text — durations and terms vary too much across sellers/countries to enumerate. Absent/null when not mentioned. */
+  warranty?: string | null;
 }
 
 /** ISO country-code lookup for the countries a listing can be tagged with, used to render flags. */

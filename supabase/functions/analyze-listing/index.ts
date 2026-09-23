@@ -100,6 +100,17 @@ const PORSCHE_APPROVED_GUIDE =
   'retention factor and let it reduce (but not eliminate) generic condition-related vigilance points. Its ' +
   'absence is not itself a negative signal — most genuine, good listings are not Porsche Approved.';
 
+const WARRANTY_GUIDE =
+  'Seller warranty (the warranty field) is an important buyer-confidence factor — always address it ' +
+  'explicitly, in both directions: (1) A stated warranty (e.g. "12 mois", "garantie constructeur 24 mois") is ' +
+  'a genuine positive — mention it by name and duration in valueAnalysis.factors and let it support ' +
+  'retentionScore/estimatedFairPrice; a long or manufacturer-backed warranty can also offset some generic ' +
+  'condition-related vigilance points. (2) No warranty stated, especially from a professional seller who ' +
+  'would normally offer one, is a real negotiation lever and worth a vigilance point (severity "info" or ' +
+  '"warning") — phrase it factually (e.g. "aucune garantie mentionnée — à négocier ou vérifier auprès du ' +
+  'vendeur") and add a corresponding negotiationArguments entry. Never invent a duration or terms beyond ' +
+  'what warranty explicitly states.';
+
 const analysisTool = {
   name: 'report_analysis',
   description: 'Report an expert-style analysis of this 911 listing for a prospective buyer.',
@@ -212,7 +223,7 @@ Deno.serve(async (req) => {
       "facts about this exact car that you can't know (service history, accident record, etc), " +
       'except where explicitly grounded in the seller description text as described below. ' +
       'This is a general opinion the buyer should independently verify, not a verified inspection.\n\n' +
-      `${OPTIONS_PRIORITY_GUIDE}\n\n${SUSPICIOUS_SIGNALS_GUIDE}\n\n${PRICE_ESTIMATE_GUIDE}\n\n${HISTORY_VALUE_GUIDE}\n\n${PORSCHE_APPROVED_GUIDE}`,
+      `${OPTIONS_PRIORITY_GUIDE}\n\n${SUSPICIOUS_SIGNALS_GUIDE}\n\n${PRICE_ESTIMATE_GUIDE}\n\n${HISTORY_VALUE_GUIDE}\n\n${PORSCHE_APPROVED_GUIDE}\n\n${WARRANTY_GUIDE}`,
     messages: [
       {
         role: 'user',
@@ -230,6 +241,7 @@ Deno.serve(async (req) => {
               fuelType: listing.fuel_type,
               presentOptions,
               porscheApproved: listing.porsche_approved ?? false,
+              warranty: listing.warranty ?? null,
               sellerDescription: listing.seller_description ?? null,
             },
             null,

@@ -318,6 +318,14 @@ export default function CarDetail({ car, lang, onClose, onEdit, onReanalyzed }: 
                 )}
               </div>
             )}
+            {car.warranty && (
+              <div className="mt-3 flex items-center gap-2.5 rounded-lg border border-emerald-400/20 bg-emerald-400/[0.04] px-3 py-2.5">
+                <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-300" />
+                <span className="text-sm font-light text-white/70">
+                  {t('sellerWarranty')}: <span className="font-medium text-emerald-200">{car.warranty}</span>
+                </span>
+              </div>
+            )}
             {car.listingUrl && (
               <a href={car.listingUrl} target="_blank" rel="noopener noreferrer" className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-amber-400/30 bg-amber-400/10 px-4 py-2.5 text-sm font-light text-amber-200 transition-all hover:bg-amber-400/20">
                 <ExternalLink className="h-4 w-4" />

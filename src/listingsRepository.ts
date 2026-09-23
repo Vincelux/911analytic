@@ -22,6 +22,7 @@ interface ListingRow {
   seller_rating: number | null;
   seller_phone: string | null;
   seller_email: string | null;
+  warranty: string | null;
   listing_url: string | null;
   listing_source: string | null;
   conformity: number | null;
@@ -58,6 +59,7 @@ function fromRow(row: ListingRow): CarListing {
     sellerRating: row.seller_rating,
     sellerPhone: row.seller_phone,
     sellerEmail: row.seller_email,
+    warranty: row.warranty,
     listingUrl: row.listing_url,
     listingSource: row.listing_source,
     conformity: row.conformity,
@@ -119,6 +121,7 @@ export interface ListingInput {
   sellerRating?: number | null;
   sellerPhone?: string | null;
   sellerEmail?: string | null;
+  warranty?: string | null;
   listingUrl?: string | null;
   listingSource?: string | null;
   notes?: string | null;
@@ -147,6 +150,7 @@ function toRowPatch(input: ListingInput): Record<string, unknown> {
   if ('sellerRating' in input) patch.seller_rating = input.sellerRating;
   if ('sellerPhone' in input) patch.seller_phone = input.sellerPhone;
   if ('sellerEmail' in input) patch.seller_email = input.sellerEmail;
+  if ('warranty' in input) patch.warranty = input.warranty;
   if ('listingUrl' in input) patch.listing_url = input.listingUrl;
   if ('listingSource' in input) patch.listing_source = input.listingSource;
   if ('notes' in input) patch.notes = input.notes;
