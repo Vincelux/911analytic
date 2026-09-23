@@ -49,6 +49,7 @@ interface FormState {
   sellerRating: string;
   sellerPhone: string;
   sellerEmail: string;
+  warranty: string;
   listingUrl: string;
   listingSource: string;
   notes: string;
@@ -57,7 +58,7 @@ interface FormState {
 const emptyForm: FormState = {
   model: '', generation: '', phase: '', image: '', price: '', mileage: '', year: '', power: '',
   fuelType: '', transmission: '', country: '', city: '', seller: '', sellerType: '',
-  sellerRating: '', sellerPhone: '', sellerEmail: '', listingUrl: '', listingSource: '', notes: '',
+  sellerRating: '', sellerPhone: '', sellerEmail: '', warranty: '', listingUrl: '', listingSource: '', notes: '',
 };
 
 function formFromListing(car: CarListing): FormState {
@@ -79,6 +80,7 @@ function formFromListing(car: CarListing): FormState {
     sellerRating: car.sellerRating != null ? String(car.sellerRating) : '',
     sellerPhone: car.sellerPhone ?? '',
     sellerEmail: car.sellerEmail ?? '',
+    warranty: car.warranty ?? '',
     listingUrl: car.listingUrl ?? '',
     listingSource: car.listingSource ?? '',
     notes: car.notes ?? '',
@@ -174,6 +176,7 @@ function ListingForm({
         maybeSet('sellerType', matchOption(result.sellerType, sellerTypeOptions) || undefined);
         maybeSet('sellerPhone', result.sellerPhone);
         maybeSet('sellerEmail', result.sellerEmail);
+        maybeSet('warranty', result.warranty);
         maybeSet('listingSource', result.listingSource);
         return next;
       });
@@ -254,6 +257,7 @@ function ListingForm({
       sellerRating: form.sellerRating.trim() ? Number(form.sellerRating) : null,
       sellerPhone: form.sellerPhone.trim() || null,
       sellerEmail: form.sellerEmail.trim() || null,
+      warranty: form.warranty.trim() || null,
       listingUrl: normalizedUrl,
       listingSource: form.listingSource.trim() || null,
       notes: form.notes.trim() || null,
@@ -442,6 +446,10 @@ function ListingForm({
           <div>
             <label htmlFor="alSellerEmail" className={labelClass}>{t('fieldSellerEmail')}</label>
             <input id="alSellerEmail" type="email" value={form.sellerEmail} onChange={(e) => update('sellerEmail', e.target.value)} className={textInputClass} />
+          </div>
+          <div className="col-span-2">
+            <label htmlFor="alWarranty" className={labelClass}>{t('fieldWarranty')}</label>
+            <input id="alWarranty" type="text" placeholder={t('fieldWarrantyPlaceholder')} value={form.warranty} onChange={(e) => update('warranty', e.target.value)} className={textInputClass} />
           </div>
           <div className="col-span-2">
             <span className={labelClass}>{t('fieldOptions')}</span>

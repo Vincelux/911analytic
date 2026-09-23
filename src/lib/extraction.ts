@@ -18,6 +18,7 @@ export interface ExtractionResult {
   sellerType?: 'Professionnel' | 'Particulier';
   sellerPhone?: string;
   sellerEmail?: string;
+  warranty?: string;
   listingSource?: string;
   options?: string[];
   porscheApproved?: boolean;

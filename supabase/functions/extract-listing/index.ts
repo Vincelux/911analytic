@@ -140,6 +140,12 @@ const extractionTool = {
       sellerType: { type: 'string', enum: ['Professionnel', 'Particulier'] },
       sellerPhone: { type: 'string' },
       sellerEmail: { type: 'string' },
+      warranty: {
+        type: 'string',
+        description: 'Warranty the seller offers, as stated (e.g. "12 mois", "Garantie constructeur 24 mois", ' +
+          '"Garantie à vie"). Translate to French. Omit entirely if no warranty is mentioned — never guess or ' +
+          'assume one exists just because the seller is a professional.',
+      },
       listingSource: { type: 'string', description: 'e.g. "mobile.de", "AutoScout24"' },
       options: {
         type: 'array',

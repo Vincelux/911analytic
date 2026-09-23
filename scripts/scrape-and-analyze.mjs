@@ -232,6 +232,12 @@ const extractionTool = {
             sellerType: { type: 'string', enum: ['Professionnel', 'Particulier'] },
             sellerPhone: { type: 'string' },
             sellerEmail: { type: 'string' },
+            warranty: {
+              type: 'string',
+              description: 'Warranty the seller offers, as stated (e.g. "12 mois", "Garantie constructeur 24 ' +
+                'mois", "Garantie à vie"). Translate to French. Omit entirely if no warranty is mentioned — ' +
+                'never guess or assume one exists just because the seller is a professional.',
+            },
             listingUrl: { type: 'string', description: 'Absolute URL to this specific ad' },
             options: {
               type: 'array',
@@ -482,6 +488,17 @@ const PORSCHE_APPROVED_GUIDE =
   'retention factor and let it reduce (but not eliminate) generic condition-related vigilance points. Its ' +
   'absence is not itself a negative signal — most genuine, good listings are not Porsche Approved.';
 
+const WARRANTY_GUIDE =
+  'Seller warranty (the warranty field) is an important buyer-confidence factor — always address it ' +
+  'explicitly, in both directions: (1) A stated warranty (e.g. "12 mois", "garantie constructeur 24 mois") is ' +
+  'a genuine positive — mention it by name and duration in valueAnalysis.factors and let it support ' +
+  'retentionScore/estimatedFairPrice; a long or manufacturer-backed warranty can also offset some generic ' +
+  'condition-related vigilance points. (2) No warranty stated, especially from a professional seller who ' +
+  'would normally offer one, is a real negotiation lever and worth a vigilance point (severity "info" or ' +
+  '"warning") — phrase it factually (e.g. "aucune garantie mentionnée — à négocier ou vérifier auprès du ' +
+  'vendeur") and add a corresponding negotiationArguments entry. Never invent a duration or terms beyond ' +
+  'what warranty explicitly states.';
+
 async function analyzeListing(listing) {
   const presentOptions = (listing.options ?? [])
     .filter((o) => o.present)
@@ -499,7 +516,7 @@ async function analyzeListing(listing) {
       "facts about this exact car that you can't know (service history, accident record, etc), " +
       'except where explicitly grounded in the seller description text as described below. ' +
       'This is a general opinion the buyer should independently verify, not a verified inspection.\n\n' +
-      `${OPTIONS_PRIORITY_GUIDE}\n\n${SUSPICIOUS_SIGNALS_GUIDE}\n\n${PRICE_ESTIMATE_GUIDE}\n\n${HISTORY_VALUE_GUIDE}\n\n${PORSCHE_APPROVED_GUIDE}`,
+      `${OPTIONS_PRIORITY_GUIDE}\n\n${SUSPICIOUS_SIGNALS_GUIDE}\n\n${PRICE_ESTIMATE_GUIDE}\n\n${HISTORY_VALUE_GUIDE}\n\n${PORSCHE_APPROVED_GUIDE}\n\n${WARRANTY_GUIDE}`,
     messages: [
       {
         role: 'user',
@@ -516,6 +533,7 @@ async function analyzeListing(listing) {
               transmission: listing.transmission,
               fuelType: listing.fuel_type,
               porscheApproved: listing.porsche_approved ?? false,
+              warranty: listing.warranty ?? null,
               presentOptions,
               sellerDescription: listing.seller_description ?? null,
             },
@@ -601,6 +619,7 @@ async function scrapeCustomSources() {
         seller_rating: null,
         seller_phone: item.sellerPhone ?? null,
         seller_email: item.sellerEmail ?? null,
+        warranty: item.warranty ?? null,
         listing_url: item.listingUrl,
         listing_source: new URL(source.url).hostname.replace(/^www\./, ''),
         conformity: null,
