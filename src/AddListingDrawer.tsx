@@ -1,13 +1,16 @@
 import { useState } from 'react';
 import { X, LogOut, Plus, Save, AlertCircle, CheckCircle2, Sparkles, Loader2, Trash2 } from 'lucide-react';
 import {
+  modelFamilies,
   generations,
+  macanGenerations,
   fuelTypes,
   transmissions,
   countryFlagCodes,
   allOptions,
   type CarListing,
   type OptionKey,
+  type ModelFamily,
 } from './data';
 import { type Lang, getT, translateOptionLabel } from './i18n';
 import { useAuth } from './lib/auth';
@@ -32,6 +35,7 @@ const countryOptions = Object.keys(countryFlagCodes);
 const sellerTypeOptions = ['Professionnel', 'Particulier'] as const;
 
 interface FormState {
+  modelFamily: string;
   model: string;
   generation: string;
   phase: string;
@@ -56,6 +60,7 @@ interface FormState {
 }
 
 const emptyForm: FormState = {
+  modelFamily: '911',
   model: '', generation: '', phase: '', image: '', price: '', mileage: '', year: '', power: '',
   fuelType: '', transmission: '', country: '', city: '', seller: '', sellerType: '',
   sellerRating: '', sellerPhone: '', sellerEmail: '', warranty: '', listingUrl: '', listingSource: '', notes: '',
@@ -63,6 +68,7 @@ const emptyForm: FormState = {
 
 function formFromListing(car: CarListing): FormState {
   return {
+    modelFamily: car.modelFamily ?? '911',
     model: car.model ?? '',
     generation: car.generation ?? '',
     phase: car.phase ?? '',
@@ -160,9 +166,14 @@ function ListingForm({
           if (!value || touched.has(key) || next[key].trim() !== '') return;
           next[key] = value;
         };
+        maybeSet('modelFamily', matchOption(result.modelFamily, modelFamilies) || undefined);
+        const resolvedFamily =
+          touched.has('modelFamily') || next.modelFamily.trim() !== ''
+            ? next.modelFamily
+            : result.modelFamily === 'Macan' ? 'Macan' : '911';
         maybeSet('model', result.model);
         maybeSet('image', result.imageUrl);
-        maybeSet('generation', matchOption(result.generation, generations) || undefined);
+        maybeSet('generation', matchOption(result.generation, resolvedFamily === 'Macan' ? macanGenerations : generations) || undefined);
         maybeSet('phase', result.phase);
         maybeSet('price', result.price != null ? String(Math.round(result.price)) : undefined);
         maybeSet('mileage', result.mileage != null ? String(Math.round(result.mileage)) : undefined);
@@ -239,6 +250,7 @@ function ListingForm({
     }
 
     const patch: ListingInput = {
+      modelFamily: (form.modelFamily || '911') as ModelFamily,
       model: form.model.trim() || null,
       generation: form.generation || null,
       phase: form.phase.trim() || null,
@@ -354,6 +366,20 @@ function ListingForm({
           <div className="col-span-2 border-t border-white/5 pt-3" />
 
           <div className="col-span-2">
+            <label htmlFor="alModelFamily" className={labelClass}>{t('fieldModelFamily')}</label>
+            <select
+              id="alModelFamily"
+              value={form.modelFamily}
+              onChange={(e) => {
+                setForm((prev) => ({ ...prev, modelFamily: e.target.value, generation: '' }));
+                setTouched((prev) => new Set(prev).add('modelFamily').add('generation'));
+              }}
+              className={textInputClass}
+            >
+              {modelFamilies.map((f) => <option key={f} value={f}>{f}</option>)}
+            </select>
+          </div>
+          <div className="col-span-2">
             <label htmlFor="alModel" className={labelClass}>{t('fieldModel')}</label>
             <input id="alModel" type="text" value={form.model} onChange={(e) => update('model', e.target.value)} placeholder={t('fieldModelPlaceholder')} className={textInputClass} />
           </div>
@@ -375,7 +401,7 @@ function ListingForm({
             <label htmlFor="alGeneration" className={labelClass}>{t('fieldGeneration')}</label>
             <select id="alGeneration" value={form.generation} onChange={(e) => update('generation', e.target.value)} className={textInputClass}>
               <option value="">—</option>
-              {generations.map((g) => <option key={g} value={g}>{g}</option>)}
+              {(form.modelFamily === 'Macan' ? macanGenerations : generations).map((g) => <option key={g} value={g}>{g}</option>)}
             </select>
           </div>
           <div>
@@ -454,7 +480,7 @@ function ListingForm({
           <div className="col-span-2">
             <span className={labelClass}>{t('fieldOptions')}</span>
             <div className="grid grid-cols-2 gap-x-3 gap-y-2 rounded-lg border border-white/10 bg-white/[0.02] p-3">
-              {allOptions.map((o) => (
+              {allOptions.filter((o) => o.families.includes((form.modelFamily || '911') as ModelFamily)).map((o) => (
                 <label key={o.key} className="flex cursor-pointer items-center gap-2 text-xs font-light text-white/60 hover:text-white/80">
                   <input
                     type="checkbox"

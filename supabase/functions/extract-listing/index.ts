@@ -100,16 +100,30 @@ async function checkRobotsTxt(targetUrl: string): Promise<{ allowed: boolean; re
 
 const extractionTool = {
   name: 'report_listing',
-  description: 'Report whatever details of this single Porsche 911 listing could be found.',
+  description: 'Report whatever details of this single Porsche 911 or Macan listing could be found.',
   input_schema: {
     type: 'object' as const,
     properties: {
+      modelFamily: {
+        type: 'string',
+        enum: ['911', 'Macan'],
+        description: 'Which Porsche model line this listing is for — obvious from the model name/title (e.g. ' +
+          '"Macan S", "911 Carrera"). Default to "911" only if genuinely ambiguous.',
+      },
       model: {
         type: 'string',
-        description: 'Model/trim name only, e.g. "911 Carrera S" — not the full listing title. Model names ' +
-          "are the same across languages, keep as-is; don't include condition/marketing text from the title.",
+        description: 'Model/trim name only, e.g. "911 Carrera S" or "Macan GTS" — not the full listing title. ' +
+          "Model names are the same across languages, keep as-is; don't include condition/marketing text from " +
+          'the title.',
       },
-      generation: { type: 'string', description: 'One of: Classique, G-Modell, 964, 993, 996, 997, 991, 992' },
+      generation: {
+        type: 'string',
+        description: 'For a 911: one of Classique, G-Modell, 964, 993, 996, 997, 991, 992. For a Macan: one of ' +
+          '"95B.1 (2014-2018)" (pre-facelift), "95B.2 (2019-2021)" (facelift, new engines/touchscreen), ' +
+          '"95B.3 (2022-2025)" (latest ICE update), or "Électrique (2024+)" (all-electric 2nd generation, PPE ' +
+          'platform — a different car from the ICE Macan, not just a new engine). Infer from model year if the ' +
+          'page doesn\'t name the generation outright.',
+      },
       phase: { type: 'string', description: 'e.g. "Phase I" — translate to French if stated in another language, omit if unknown' },
       imageUrl: {
         type: 'string',
@@ -192,6 +206,8 @@ const OPTIONS_HINT =
   'axleLift=front axle lift/levage essieu avant/Liftsystem; pts=Paint to Sample/peinture spéciale; ' +
   'carbonTrim=carbon trim package/pack carbone; fullLeather=full leather/sellerie cuir intégrale; ' +
   'sportSuspension=lowered sport suspension -20mm (static, distinct from adaptive PASM)/suspension sport abaissée; ' +
+  'airSuspension=adaptive air suspension/suspension pneumatique adaptative/Luftfederung (Macan-specific, distinct ' +
+  'from PASM which is the separate damping-control system — a Macan can have either or both); ' +
   'sunroof=sunroof/panoramic roof/toit ouvrant/toit panoramique/Schiebedach; ' +
   'carPlay=Apple CarPlay/Android Auto/smartphone integration.';
 
@@ -278,7 +294,7 @@ Deno.serve(async (req) => {
       {
         role: 'user',
         content:
-          "Extrait les informations de cette annonce Porsche 911 via l'outil report_listing. " +
+          "Extrait les informations de cette annonce Porsche (911 ou Macan) via l'outil report_listing. " +
           "N'invente jamais une valeur qui n'est pas visible dans le texte ci-dessous — omets " +
           "simplement le champ si l'information n'y figure pas. Pour le champ options, base-toi " +
           `sur ce lexique : ${OPTIONS_HINT}\n\n` +

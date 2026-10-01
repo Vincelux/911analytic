@@ -31,6 +31,7 @@ const OPTION_LABELS = {
   carbonBrakes: 'Freins Carbone PCCB',
   pasm: 'Suspension pilotée PASM',
   sportSuspension: 'Suspension sport abaissée (-20 mm)',
+  airSuspension: 'Suspension pneumatique adaptative',
   pdcc: 'Stabilisation active PDCC',
   lsd: 'Différentiel à glissement limité',
   rearSteering: 'Essieu arrière directeur',
@@ -47,7 +48,7 @@ const OPTION_LABELS = {
 // weight the negotiation/value-factor prompt below.
 const OPTION_TIERS = {
   sportChrono: 'high', pse: 'high', rearSteering: 'high', pasm: 'high',
-  sportSuspension: 'high', axleLift: 'high', lsd: 'high', pdcc: 'high',
+  sportSuspension: 'high', airSuspension: 'high', axleLift: 'high', lsd: 'high', pdcc: 'high',
   sportSeats: 'notable', fullLeather: 'notable', bose: 'notable', sunroof: 'notable',
   matrixLed: 'notable', pts: 'notable', x51: 'notable', carPlay: 'notable', carbonBrakes: 'notable',
   carbonTrim: 'appeal',
@@ -63,6 +64,8 @@ const OPTIONS_HINT =
   'axleLift=front axle lift/levage essieu avant/Liftsystem; pts=Paint to Sample/peinture spéciale; ' +
   'carbonTrim=carbon trim package/pack carbone; fullLeather=full leather/sellerie cuir intégrale; ' +
   'sportSuspension=lowered sport suspension -20mm (static, distinct from adaptive PASM)/suspension sport abaissée; ' +
+  'airSuspension=adaptive air suspension/suspension pneumatique adaptative/Luftfederung (Macan-specific, distinct ' +
+  'from PASM which is the separate damping-control system — a Macan can have either or both); ' +
   'sunroof=sunroof/panoramic roof/toit ouvrant/toit panoramique/Schiebedach; ' +
   'carPlay=Apple CarPlay/Android Auto/smartphone integration.';
 
@@ -190,14 +193,24 @@ const extractionTool = {
         items: {
           type: 'object',
           properties: {
+            modelFamily: {
+              type: 'string',
+              enum: ['911', 'Macan'],
+              description: 'Which Porsche model line this listing is for — obvious from the model name/title ' +
+                '(e.g. "Macan S", "911 Carrera"). Default to "911" only if genuinely ambiguous.',
+            },
             model: {
               type: 'string',
-              description: 'Model/trim name only, e.g. "911 Carrera S" — not the full listing title. Model ' +
-                "names are the same across languages, keep as-is; don't include condition/marketing text.",
+              description: 'Model/trim name only, e.g. "911 Carrera S" or "Macan GTS" — not the full listing ' +
+                "title. Model names are the same across languages, keep as-is; don't include condition/" +
+                'marketing text.',
             },
             generation: {
               type: 'string',
-              description: 'One of: Classique, G-Modell, 964, 993, 996, 997, 991, 992',
+              description: 'For a 911: one of Classique, G-Modell, 964, 993, 996, 997, 991, 992. For a Macan: ' +
+                'one of "95B.1 (2014-2018)" (pre-facelift), "95B.2 (2019-2021)" (facelift, new engines/' +
+                'touchscreen), "95B.3 (2022-2025)" (latest ICE update), or "Électrique (2024+)" (all-electric ' +
+                '2nd generation, PPE platform). Infer from model year if the page doesn\'t name it outright.',
             },
             phase: { type: 'string', description: 'e.g. "Phase I" — translate to French if stated in another language, omit if unknown' },
             imageUrl: {
@@ -263,7 +276,7 @@ const extractionTool = {
             },
           },
           required: [
-            'model', 'generation', 'price', 'mileage', 'year', 'power', 'fuelType',
+            'modelFamily', 'model', 'generation', 'price', 'mileage', 'year', 'power', 'fuelType',
             'transmission', 'country', 'countryFlag', 'city', 'seller', 'sellerType', 'listingUrl',
           ],
         },
@@ -284,10 +297,10 @@ async function extractListingsFromPage(pageUrl, html, criteriaHint) {
         role: 'user',
         content:
           `Page URL: ${pageUrl}\n\n` +
-          `This is the HTML of a car listings page. Find every Porsche 911 for sale on it ` +
+          `This is the HTML of a car listings page. Find every Porsche 911 or Macan for sale on it ` +
           `and report it via the report_listings tool. Resolve any relative links to absolute ` +
-          `URLs using the page URL above. Skip anything that isn't a 911. If a field isn't visible ` +
-          `on the page, omit it rather than guessing. For the options field, use this lexicon: ` +
+          `URLs using the page URL above. Skip anything that isn't a 911 or Macan. If a field isn't ` +
+          `visible on the page, omit it rather than guessing. For the options field, use this lexicon: ` +
           `${OPTIONS_HINT}\n\n` +
           `Only report listings that show a clear asking price. A listing with no price displayed ` +
           `(e.g. "vendu"/"venduto"/"sold", a status badge instead of a price, or simply no price at ` +
@@ -382,7 +395,7 @@ function matchesCriteria(item, c) {
 
 const analysisTool = {
   name: 'report_analysis',
-  description: "Report an expert-style analysis of this 911 listing for a prospective buyer.",
+  description: "Report an expert-style analysis of this Porsche (911 or Macan) listing for a prospective buyer.",
   input_schema: {
     type: 'object',
     properties: {
@@ -448,11 +461,11 @@ const OPTIONS_PRIORITY_GUIDE =
 // Grounded in specialist Porsche buying-guide consensus (Rennlist, Total911,
 // stuttcars, elferspot) — categories worth scanning the seller's own text
 // for, without ever asserting something as fact the text doesn't support.
-const SUSPICIOUS_SIGNALS_GUIDE =
-  'Separately, scan the seller description (if provided) and the structured fields for language suggesting ' +
-  'any of these known risk categories, and raise a vigilance point (severity "warning" or "critical" depending ' +
-  'on how explicit the signal is) when you find one — phrase it as "à vérifier"/"signal détecté", never as a ' +
-  'confirmed fact you cannot know: ' +
+const SUSPICIOUS_SIGNALS_911_GUIDE =
+  'When modelFamily is "911": separately, scan the seller description (if provided) and the structured fields ' +
+  'for language suggesting any of these known risk categories, and raise a vigilance point (severity "warning" ' +
+  'or "critical" depending on how explicit the signal is) when you find one — phrase it as "à vérifier"/"signal ' +
+  'détecté", never as a confirmed fact you cannot know: ' +
   '(1) Grey/non-EU import — US-spec markers (mph speedometer, federal bumpers, "US import", title in another ' +
   'country) mean the buyer may inherit unpaid import VAT/customs duties and compliance (COC certificate) issues ' +
   'if the car was never properly registered in the EU; (2) Accident/damage history — words like accidenté, ' +
@@ -462,12 +475,61 @@ const SUSPICIOUS_SIGNALS_GUIDE =
   'mentioned, missing books/history, "kilométrage non garanti". Do not raise a point for a category with no ' +
   'textual support — silence on a topic is not itself a red flag.';
 
+// Grounded in Macan-specific buying-guide/forum consensus (Rennlist, Macan
+// Forum, stuttcars) — the 964/996/997-era issues above (cylinder scoring,
+// IMS bearing) simply don't apply to this car; these are its own real,
+// well-documented failure points, concentrated in the 95B.1 pre-facelift era.
+const SUSPICIOUS_SIGNALS_MACAN_GUIDE =
+  'When modelFamily is "Macan": scan the seller description and structured fields for signals matching these ' +
+  'known Macan risk categories, same severity rules as above (never assert as confirmed fact, only "à ' +
+  'vérifier"/signal détecté" when the text supports it): ' +
+  '(1) Transfer case failure — well-documented on 2015-2018 (95B.1) cars: jerky shifting, hesitation. Porsche ' +
+  'extended the warranty on this part — ask whether it was replaced under that extension. ' +
+  '(2) Timing chain tensioner failure — affects the 3.0L/3.6L V6 turbo engines (shared architecture with the ' +
+  'Audi/VW EA839 family), especially 2015-2016 cars and any history of extended oil-change intervals or low ' +
+  'oil level; symptom is chain rattle on cold start; repair is costly (chain, tensioner, guides). ' +
+  '(3) Coolant pipe leaks — plastic-to-aluminum coolant pipe joints beneath the intake manifold go brittle from ' +
+  'heat cycling and crack, especially past ~100,000 km; ask about coolant top-ups or overheating history. ' +
+  '(4) PDK low-speed judder on early (2014-2016) cars — Porsche issued a software fix, some needed a ' +
+  'mechatronic unit replacement; ask if a PDK software update was done. ' +
+  '(5) Air suspension (if the airSuspension option is present) — compressor/valve faults can appear from as ' +
+  'little as 40,000-60,000 km, causing uneven ride height; a real inspection point, not just a comfort option. ' +
+  '(6) Elevated brake pad/rotor wear at relatively low mileage is normal for this car (heavy, sporty) and not ' +
+  'itself a red flag — only raise it as a negotiation point if photos or the text indicate pads/discs near end ' +
+  'of life. (7) Some V6 engines consume oil faster than typical — ask about oil top-ups between services. ' +
+  '(8) Infotainment/PCM freezing or slow response is more common pre-2019 (95B.1), largely resolved by the ' +
+  '2019 facelift\'s new touchscreen system — don\'t penalize a post-2019 car for this unless stated. ' +
+  '(9) For the Macan Electric (2024+, generation "Électrique (2024+)"): this is a different car on a different ' +
+  'platform — none of the ICE issues above apply. Instead: ask about battery state of health/degradation if ' +
+  'disclosed and charging history; note that Porsche recalled 2024-2025 model-year Macan Electric units over a ' +
+  'backup camera that may stay dark or show a blurry image in reverse — ask whether that recall was performed.';
+
+// Frames retentionScore/rarityLabel/estimatedFairPrice reasoning differently
+// per model line — a 911 is reasoned about as a sports-car/collector asset,
+// but applying that same collector-market language to a mainstream SUV like
+// the Macan would be actively misleading (most Macans depreciate like any
+// used premium SUV; "rarity" there means desirable spec, not scarcity).
+const FAMILY_CONTEXT_GUIDE =
+  'Model-family context for retentionScore, rarityLabel and estimatedFairPrice: ' +
+  'When modelFamily is "911", reason as you would about a sports-car/collector asset — rarity, generation ' +
+  'desirability and appreciation potential are real, central factors (as covered elsewhere in these ' +
+  'instructions). When modelFamily is "Macan", reason instead as you would about a mainstream premium SUV: ' +
+  'retentionScore and rarityLabel should reflect desirability and condition within the used-SUV segment — a ' +
+  'well-optioned, low-mileage, well-documented GTS or Turbo is genuinely stronger than a base Macan with a thin ' +
+  'history, but avoid collector-market language ("cote de collection", "future classique", "valeur de ' +
+  'collection") unless the car is a genuinely limited or special edition. The 2019 facelift (95B.2+) and the ' +
+  'Macan Electric represent real generational jumps (infotainment, driver assistance, and for the Electric the ' +
+  'entire powertrain) that meaningfully affect desirability and resale — weigh generation accordingly. For ' +
+  'estimatedFairPrice on a Macan, reason about the current used-SUV (or, for the Electric, used-EV) market for ' +
+  'this configuration, not a collector-car framing.';
+
 const PRICE_ESTIMATE_GUIDE =
   'For estimatedFairPrice: reason about a realistic fair market price for this exact car given its year, ' +
-  'mileage, generation/phase, present options and general knowledge of the current collector/used market for ' +
-  'this model — not a mechanical formula. If the listed price seems fair, estimatedFairPrice can be close to ' +
-  'or equal to it. Explain your reasoning in priceRationale (2-3 sentences, French) — cite the specific factors ' +
-  'that moved your estimate up or down (rarity, options, condition signals, market trend for this generation). ' +
+  'mileage, generation/phase, present options and general knowledge of the current market for this model (see ' +
+  'FAMILY_CONTEXT_GUIDE below for how that market framing differs by modelFamily) — not a mechanical formula. ' +
+  'If the listed price seems fair, estimatedFairPrice can be close to or equal to it. Explain your reasoning in ' +
+  'priceRationale (2-3 sentences, French) — cite the specific factors that moved your estimate up or down ' +
+  '(rarity/desirability, options, condition signals, market trend for this generation). ' +
   'If the price field is missing, omit estimatedFairPrice and say so in priceRationale.';
 
 const HISTORY_VALUE_GUIDE =
@@ -510,19 +572,22 @@ async function analyzeListing(listing) {
     tools: [analysisTool],
     tool_choice: { type: 'tool', name: 'report_analysis' },
     system:
-      'You are a Porsche 911 buying expert writing for a French-speaking used-car search tool. ' +
+      'You are a Porsche buying expert (911 and Macan) writing for a French-speaking used-car search tool. ' +
       'Write every text field in French. Base your analysis on general, well-known facts about ' +
-      "this generation/model's typical issues and the collector market — never invent specific " +
+      "this model line/generation's typical issues and market — never invent specific " +
       "facts about this exact car that you can't know (service history, accident record, etc), " +
       'except where explicitly grounded in the seller description text as described below. ' +
-      'This is a general opinion the buyer should independently verify, not a verified inspection.\n\n' +
-      `${OPTIONS_PRIORITY_GUIDE}\n\n${SUSPICIOUS_SIGNALS_GUIDE}\n\n${PRICE_ESTIMATE_GUIDE}\n\n${HISTORY_VALUE_GUIDE}\n\n${PORSCHE_APPROVED_GUIDE}\n\n${WARRANTY_GUIDE}`,
+      'This is a general opinion the buyer should independently verify, not a verified inspection. The ' +
+      'listing\'s modelFamily field tells you which car this is — apply the matching guides below and ignore ' +
+      'the ones for the other model line.\n\n' +
+      `${OPTIONS_PRIORITY_GUIDE}\n\n${SUSPICIOUS_SIGNALS_911_GUIDE}\n\n${SUSPICIOUS_SIGNALS_MACAN_GUIDE}\n\n${FAMILY_CONTEXT_GUIDE}\n\n${PRICE_ESTIMATE_GUIDE}\n\n${HISTORY_VALUE_GUIDE}\n\n${PORSCHE_APPROVED_GUIDE}\n\n${WARRANTY_GUIDE}`,
     messages: [
       {
         role: 'user',
         content:
           `Analyze this listing:\n${JSON.stringify(
             {
+              modelFamily: listing.model_family ?? '911',
               model: listing.model,
               generation: listing.generation,
               phase: listing.phase,
@@ -601,6 +666,7 @@ async function scrapeCustomSources() {
     for (const item of matching) {
       const row = {
         id: generateId(),
+        model_family: item.modelFamily === 'Macan' ? 'Macan' : '911',
         model: item.model,
         generation: item.generation,
         phase: item.phase ?? null,

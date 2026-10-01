@@ -6,6 +6,7 @@ export type OptionKey =
   | 'carbonBrakes'
   | 'pasm'
   | 'sportSuspension'
+  | 'airSuspension'
   | 'pdcc'
   | 'lsd'
   | 'rearSteering'
@@ -20,6 +21,10 @@ export type OptionKey =
 
 /** Rough buying-priority tier: how much this option tends to matter to value/negotiation. */
 export type OptionTier = 'high' | 'notable' | 'appeal';
+
+/** Which Porsche model line a listing belongs to — drives which generation list, option catalog subset, and AI analysis knowledge base apply. */
+export const modelFamilies = ['911', 'Macan'] as const;
+export type ModelFamily = (typeof modelFamilies)[number];
 
 export interface CarOption {
   key: OptionKey;
@@ -92,6 +97,8 @@ export interface CarListing {
   porscheApproved?: boolean | null;
   /** Warranty the seller offers, as stated in the listing (e.g. "12 mois", "Garantie constructeur 24 mois"). Free text — durations and terms vary too much across sellers/countries to enumerate. Absent/null when not mentioned. */
   warranty?: string | null;
+  /** Which Porsche model line this listing is for. Absent/null on older rows defaults to '911' everywhere this is read — the app launched 911-only. */
+  modelFamily?: ModelFamily | null;
 }
 
 /** ISO country-code lookup for the countries a listing can be tagged with, used to render flags. */
@@ -110,6 +117,23 @@ export const countryFlagCodes: Record<string, string> = {
 
 export const generations = ['Classique', 'G-Modell', '964', '993', '996', '997', '991', '992'] as const;
 export type Generation = (typeof generations)[number];
+
+/**
+ * Macan generations: 95B.1 (pre-facelift), 95B.2 (2019 facelift — new engines,
+ * 10.9" touchscreen/CarPlay), 95B.3 (2022+ update), and the all-electric
+ * second generation (2024+, PPE platform) — a different car entirely from the
+ * ICE Macan, not just a new engine option.
+ */
+export const macanGenerations = [
+  '95B.1 (2014-2018)',
+  '95B.2 (2019-2021)',
+  '95B.3 (2022-2025)',
+  'Électrique (2024+)',
+] as const;
+export type MacanGeneration = (typeof macanGenerations)[number];
+
+/** Combined generation list, used by the generation filter regardless of model family. */
+export const allGenerations: readonly string[] = [...generations, ...macanGenerations];
 
 export const fuelTypes = ['Essence', 'Hybride', 'Électrique'] as const;
 export type FuelType = (typeof fuelTypes)[number];
@@ -142,8 +166,10 @@ export const ratingOptions = ['Toutes', '3 étoiles et +', '4 étoiles et +', '4
 export type Rating = (typeof ratingOptions)[number];
 
 export interface FilterState {
-  /** Empty array = no filter (all generations). */
-  generation: Generation[];
+  /** 'Tous' = both 911 and Macan. */
+  modelFamily: ModelFamily | 'Tous';
+  /** Empty array = no filter (all generations). Holds labels from either generations or macanGenerations depending on modelFamily. */
+  generation: string[];
   yearMin: number;
   yearMax: number;
   priceMin: number;
@@ -160,6 +186,7 @@ export interface FilterState {
 }
 
 export const defaultFilters: FilterState = {
+  modelFamily: 'Tous',
   generation: [],
   yearMin: 1964,
   yearMax: 2026,
@@ -182,29 +209,33 @@ export const defaultFilters: FilterState = {
  * consistently sorted without extra logic. `tier` is catalog metadata only —
  * it isn't duplicated onto the CarOption[] stored per listing.
  */
-export const allOptions: (CarOption & { tier: OptionTier })[] = [
+export const allOptions: (CarOption & { tier: OptionTier; families: ModelFamily[] })[] = [
   // High priority: consistently searched-for, hard to retrofit, strong resale/negotiation weight.
-  { key: 'sportChrono', label: 'Pack Sport Chrono', present: false, tier: 'high' },
-  { key: 'pse', label: 'Échappement Sport PSE', present: false, tier: 'high' },
-  { key: 'rearSteering', label: 'Essieu arrière directeur', present: false, tier: 'high' },
-  { key: 'pasm', label: 'Suspension pilotée PASM', present: false, tier: 'high' },
-  { key: 'sportSuspension', label: 'Suspension sport abaissée (-20 mm)', present: false, tier: 'high' },
-  { key: 'axleLift', label: "Levage de l'essieu avant", present: false, tier: 'high' },
-  { key: 'lsd', label: 'Différentiel à glissement limité', present: false, tier: 'high' },
-  { key: 'pdcc', label: 'Stabilisation active PDCC', present: false, tier: 'high' },
+  { key: 'sportChrono', label: 'Pack Sport Chrono', present: false, tier: 'high', families: ['911', 'Macan'] },
+  { key: 'pse', label: 'Échappement Sport PSE', present: false, tier: 'high', families: ['911', 'Macan'] },
+  { key: 'rearSteering', label: 'Essieu arrière directeur', present: false, tier: 'high', families: ['911'] },
+  { key: 'pasm', label: 'Suspension pilotée PASM', present: false, tier: 'high', families: ['911', 'Macan'] },
+  { key: 'sportSuspension', label: 'Suspension sport abaissée (-20 mm)', present: false, tier: 'high', families: ['911'] },
+  // Macan-specific: a real comfort/value driver, but also a known maintenance
+  // risk point (compressor/valve faults from ~40-60k km) — worth its own
+  // entry rather than folding into sportSuspension, a different mechanism.
+  { key: 'airSuspension', label: 'Suspension pneumatique adaptative', present: false, tier: 'high', families: ['Macan'] },
+  { key: 'axleLift', label: "Levage de l'essieu avant", present: false, tier: 'high', families: ['911', 'Macan'] },
+  { key: 'lsd', label: 'Différentiel à glissement limité', present: false, tier: 'high', families: ['911', 'Macan'] },
+  { key: 'pdcc', label: 'Stabilisation active PDCC', present: false, tier: 'high', families: ['911'] },
   // Notable: genuinely appealing, but desirability varies more by buyer.
   // (PCCB: excellent but costly to maintain — a plus for track-focused buyers, not a universal must-have.)
-  { key: 'carbonBrakes', label: 'Freins Carbone PCCB', present: false, tier: 'notable' },
-  { key: 'sportSeats', label: 'Sièges Sport Plus adaptatifs (18 pos.)', present: false, tier: 'notable' },
-  { key: 'fullLeather', label: 'Sellerie cuir intégrale', present: false, tier: 'notable' },
-  { key: 'bose', label: 'Système audio haut de gamme (Bose/Burmester)', present: false, tier: 'notable' },
-  { key: 'sunroof', label: 'Toit ouvrant / panoramique', present: false, tier: 'notable' },
-  { key: 'matrixLed', label: 'Phares LED Matrix (PDLS+)', present: false, tier: 'notable' },
-  { key: 'pts', label: 'Peinture spéciale / Paint to Sample', present: false, tier: 'notable' },
-  { key: 'x51', label: 'X51 Powerkit', present: false, tier: 'notable' },
-  { key: 'carPlay', label: 'Apple CarPlay / Android Auto', present: false, tier: 'notable' },
+  { key: 'carbonBrakes', label: 'Freins Carbone PCCB', present: false, tier: 'notable', families: ['911', 'Macan'] },
+  { key: 'sportSeats', label: 'Sièges Sport Plus adaptatifs (18 pos.)', present: false, tier: 'notable', families: ['911', 'Macan'] },
+  { key: 'fullLeather', label: 'Sellerie cuir intégrale', present: false, tier: 'notable', families: ['911', 'Macan'] },
+  { key: 'bose', label: 'Système audio haut de gamme (Bose/Burmester)', present: false, tier: 'notable', families: ['911', 'Macan'] },
+  { key: 'sunroof', label: 'Toit ouvrant / panoramique', present: false, tier: 'notable', families: ['911', 'Macan'] },
+  { key: 'matrixLed', label: 'Phares LED Matrix (PDLS+)', present: false, tier: 'notable', families: ['911', 'Macan'] },
+  { key: 'pts', label: 'Peinture spéciale / Paint to Sample', present: false, tier: 'notable', families: ['911', 'Macan'] },
+  { key: 'x51', label: 'X51 Powerkit', present: false, tier: 'notable', families: ['911'] },
+  { key: 'carPlay', label: 'Apple CarPlay / Android Auto', present: false, tier: 'notable', families: ['911', 'Macan'] },
   // Cosmetic / minor.
-  { key: 'carbonTrim', label: 'Pack carbone (intérieur/extérieur)', present: false, tier: 'appeal' },
+  { key: 'carbonTrim', label: 'Pack carbone (intérieur/extérieur)', present: false, tier: 'appeal', families: ['911', 'Macan'] },
 ];
 
 function opts(present: OptionKey[]): CarOption[] {
@@ -817,7 +848,8 @@ export const listings: CarListing[] = [
  */
 export function filterListings(listings: CarListing[], filters: FilterState): CarListing[] {
   return listings.filter((car) => {
-    if (filters.generation.length > 0 && car.generation != null && !filters.generation.includes(car.generation as Generation)) return false;
+    if (filters.modelFamily !== 'Tous' && (car.modelFamily ?? '911') !== filters.modelFamily) return false;
+    if (filters.generation.length > 0 && car.generation != null && !filters.generation.includes(car.generation)) return false;
     if (car.year != null && (car.year < filters.yearMin || car.year > filters.yearMax)) return false;
     if (car.price != null && (car.price < filters.priceMin || car.price > filters.priceMax)) return false;
     if (car.mileage != null && (car.mileage < filters.kmMin || car.mileage > filters.kmMax)) return false;

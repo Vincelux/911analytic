@@ -10,6 +10,9 @@ import {
 import {
   defaultFilters,
   generations,
+  macanGenerations,
+  allGenerations,
+  modelFamilies,
   fuelTypes,
   transmissions,
   sellerTypes,
@@ -17,13 +20,13 @@ import {
   countries,
   ratingOptions,
   type FilterState,
-  type Generation,
   type FuelType,
   type Transmission,
   type SellerType,
   type PublicationDate,
   type Country,
   type Rating,
+  type ModelFamily,
 } from './data';
 import { type Lang, getT, translateOption } from './i18n';
 
@@ -413,6 +416,7 @@ function StarRating({
 function getActiveSummary(filters: FilterState, lang: Lang): string[] {
   const chips: string[] = [];
   const t = getT(lang);
+  if (filters.modelFamily !== 'Tous') chips.push(filters.modelFamily);
   if (filters.generation.length > 0) chips.push(`${t('fGeneration')}: ${filters.generation.join(', ')}`);
   if (filters.yearMin > defaultFilters.yearMin || filters.yearMax < defaultFilters.yearMax) {
     chips.push(`${filters.yearMin}–${filters.yearMax}`);
@@ -454,6 +458,15 @@ export default function FilterPanel({ filters, onChange, lang }: FilterPanelProp
   const activeChips = getActiveSummary(filters, lang);
   const activeCount = activeChips.length;
   const reset = () => onChange({ ...defaultFilters });
+
+  const generationOptions =
+    filters.modelFamily === 'Macan' ? macanGenerations : filters.modelFamily === '911' ? generations : allGenerations;
+
+  const updateModelFamily = (value: string) => {
+    // A generation picked under one model family (e.g. "997") means nothing
+    // under another — clear it rather than leave a stale, invisible filter.
+    onChange({ ...filters, modelFamily: value as ModelFamily | 'Tous', generation: [] });
+  };
 
   return (
     <div className="border-b border-white/5 bg-[#0d0d0d]/60 backdrop-blur-sm">
@@ -500,7 +513,8 @@ export default function FilterPanel({ filters, onChange, lang }: FilterPanelProp
           <div className="border-t border-white/5" />
           <div className="mx-auto max-w-7xl px-6 py-4">
             <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
-              <MultiSelectDropdown label={t('fGeneration')} values={filters.generation} options={generations} onChange={(v) => update('generation', v as Generation[])} allLabel={t('optAll')} lang={lang} />
+              <SegmentedControl label={t('fModel')} options={['Tous', ...modelFamilies]} value={filters.modelFamily} onChange={updateModelFamily} lang={lang} />
+              <MultiSelectDropdown label={t('fGeneration')} values={filters.generation} options={generationOptions} onChange={(v) => update('generation', v)} allLabel={t('optAll')} lang={lang} />
               <RangeFields label={t('fYear')} valueMin={filters.yearMin} valueMax={filters.yearMax} onChangeMin={(v) => update('yearMin', v)} onChangeMax={(v) => update('yearMax', v)} min={defaultFilters.yearMin} />
               <RangeFields label={t('fBudget')} valueMin={filters.priceMin} valueMax={filters.priceMax} onChangeMin={(v) => update('priceMin', v)} onChangeMax={(v) => update('priceMax', v)} />
               <RangeFields label={t('fMileage')} valueMin={filters.kmMin} valueMax={filters.kmMax} onChangeMin={(v) => update('kmMin', v)} onChangeMax={(v) => update('kmMax', v)} />
