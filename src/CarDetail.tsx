@@ -66,6 +66,7 @@ const optionIcons: Record<string, typeof Zap> = {
   carbonTrim: ShieldCheck,
   fullLeather: Armchair,
   sportSuspension: Gauge,
+  airSuspension: Gauge,
   sunroof: Sun,
   carPlay: Smartphone,
 };

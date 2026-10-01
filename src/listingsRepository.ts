@@ -4,6 +4,7 @@ import { listings as fallbackListings, type CarListing } from './data';
 
 interface ListingRow {
   id: string;
+  model_family: CarListing['modelFamily'];
   model: string | null;
   generation: string | null;
   phase: string | null;
@@ -41,6 +42,7 @@ interface ListingRow {
 function fromRow(row: ListingRow): CarListing {
   return {
     id: row.id,
+    modelFamily: row.model_family ?? '911',
     model: row.model,
     generation: row.generation,
     phase: row.phase,
@@ -103,6 +105,7 @@ export async function fetchListings(): Promise<CarListing[]> {
  * known (e.g. just a pasted URL) and completed later via updateListing.
  */
 export interface ListingInput {
+  modelFamily?: CarListing['modelFamily'];
   model?: string | null;
   generation?: string | null;
   phase?: string | null;
@@ -132,6 +135,7 @@ export interface ListingInput {
 
 function toRowPatch(input: ListingInput): Record<string, unknown> {
   const patch: Record<string, unknown> = {};
+  if ('modelFamily' in input) patch.model_family = input.modelFamily;
   if ('model' in input) patch.model = input.model;
   if ('generation' in input) patch.generation = input.generation;
   if ('phase' in input) patch.phase = input.phase;

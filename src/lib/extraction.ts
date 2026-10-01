@@ -1,6 +1,7 @@
 import { supabase } from './supabaseClient';
 
 export interface ExtractionResult {
+  modelFamily?: string;
   model?: string;
   generation?: string;
   phase?: string;
